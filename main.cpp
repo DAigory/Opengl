@@ -142,6 +142,7 @@ int main (int argc, char *argv[])
         glUniform3f(vertexShift, 0.0f, 0.0f, 0.0f);
         glUniform1f(vertexShiftMix, shiftMix);
 
+
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
         glUniform1i(glGetUniformLocation(shader.GetProgram(), "ourTexture"), 0);
