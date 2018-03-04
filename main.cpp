@@ -42,13 +42,15 @@ int main (int argc, char *argv[])
   	//Выключение возможности изменения размера окна
   	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-  	GLFWwindow* window = glfwCreateWindow(800, 600, "LearnOpenGL", nullptr, nullptr);
+
+  	GLFWwindow* window = glfwCreateWindow(1920, 1080, "LearnOpenGL", nullptr, nullptr);
     if (window == nullptr)
     {
     	std::cout << "Failed to create GLFW window" << std::endl;
     	glfwTerminate();
     	return -1;
     }
+
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //disabel cursor
     glfwMakeContextCurrent(window);
@@ -65,7 +67,7 @@ int main (int argc, char *argv[])
     glViewport(0, 0, width, height);
 
     Camera camera = Camera();
-    controller = new Controller(&camera);
+    controller = new Controller(&camera, width, height);
 
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, mouse_callback);

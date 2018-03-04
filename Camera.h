@@ -8,7 +8,7 @@
 const GLfloat YAW        = -90.0f;
 const GLfloat PITCH      =  0.0f;
 const GLfloat SPEED      =  3.0f;
-const GLfloat SENSITIVTY =  0.25f;
+const GLfloat SENSITIVTY =  10.25f;
 const GLfloat ZOOM       =  45.0f;
 
 class Camera {
@@ -57,13 +57,14 @@ public:
              this->Position -= this->Front * this->GetVelocity(deltaTime);
         }
 
-        void ProcessMouseMovement(GLfloat xoffset, GLfloat yoffset, GLboolean constrainPitch = true)
+        void ProcessMouseMovement(GLfloat xoffset, GLfloat yoffset, float deltaTime, GLboolean constrainPitch = true)
         {
-            xoffset *= this->MouseSensitivity;
-            yoffset *= this->MouseSensitivity;
+            xoffset *= this->MouseSensitivity * deltaTime;
+            yoffset *= this->MouseSensitivity * deltaTime;
 
             this->Yaw   += xoffset;
             this->Pitch += yoffset;
+
 
             // Make sure that when pitch is out of bounds, screen doesn't get flipped
             if (constrainPitch)

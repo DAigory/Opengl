@@ -7,10 +7,12 @@ SOURCES=main.cpp shader.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=main
 
+
+
 all: $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ -l$(LIBS)
+	$(CC) $(LDFLAGS) $(OBJECTS) -o  $@ -l$(LIBS)
 
 
 

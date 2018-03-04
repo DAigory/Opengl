@@ -8,6 +8,8 @@ class Controller {
          Controller(Camera* camera_, int width, int height): camera(camera_){
             this->resolution = glm::vec2(width, height);
             this->lastMouse = glm::vec2(width / 2, height / 2);
+            this->mouseDelta = glm::vec2();
+            std::fill_n(this->keys, sizeof(this->keys)/sizeof(this->keys[0]), false);
          }
 
          void Update(float deltaTime){
@@ -31,7 +33,7 @@ class Controller {
                 this->mouseDelta.x = xpos - this->lastMouse.x;
                 this->mouseDelta.y = this->lastMouse.y - ypos;
                 this->lastMouse = glm::vec2(xpos, ypos);
-                this->camera->ProcessMouseMovement(this->mouseDelta.x, this->mouseDelta.y);
+                this->camera->ProcessMouseMovement(this->mouseDelta.x, this->mouseDelta.y, deltaTime);
          }
          void Scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
                 this->camera->ProcessMouseScroll(yoffset);
