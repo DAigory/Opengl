@@ -3,7 +3,6 @@
 uniform vec3 ourColor;
 uniform float shiftMix;
 
-in vec3 vertexColor;
 in vec2 TexCoord;
 
 out vec4 color;
