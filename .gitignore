@@ -5,7 +5,8 @@
 !*.*
 
 # Unignore all directories
-!/*.*/
+!/*.*/*
+!/**/
 
 # Prerequisites
 *.d

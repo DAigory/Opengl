@@ -209,7 +209,6 @@ int main (int argc, char *argv[])
         glBindVertexArray(VAO);
        // glDrawElements(GL_TRIANGLES, 16, GL_UNSIGNED_INT, 0);
 
-
         for(GLuint i = 0; i < 7; i++)
         {
           glm::mat4 model;
