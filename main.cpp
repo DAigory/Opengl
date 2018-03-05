@@ -1,5 +1,4 @@
 #include <iostream>
-#include <SOIL.h>
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -10,6 +9,7 @@
 #include "shader.h"
 #include "Mesh.h"
 #include "Controller.h"
+#include "Texture.h"
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -94,10 +94,12 @@ int main (int argc, char *argv[])
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(3* sizeof(GLfloat)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3* sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(6* sizeof(GLfloat)));
+    glEnableVertexAttribArray(2);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0); // Note that this is allowed, the call to glVertexAttribPointer registered VBO as the currently bound vertex buffer object so afterwards we can safely unbind
 
@@ -109,7 +111,7 @@ int main (int argc, char *argv[])
     // Так как VBO объекта-контейнера уже содержит все необходимые данные, то нам нужно только связать с ним новый VAO
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     // Настраиваем атрибуты (нашей лампе понадобятся только координаты вершин)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0); // Note that this is allowed, the call to glVertexAttribPointer registered VBO as the currently bound vertex buffer object so afterwards we can safely unbind
     glBindVertexArray(0);
@@ -120,40 +122,11 @@ int main (int argc, char *argv[])
     Shader shaderSimple = Shader("shaders/simple.vert", "shaders/simple.frag");
     Shader shaderLamp = Shader("shaders/simple.vert", "shaders/lamp.frag");
 
-    int width_img, height_img;
-    unsigned char* image = SOIL_load_image("box.jpg", &width_img, &height_img, 0, SOIL_LOAD_RGB);
-    GLuint texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width_img, height_img, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    SOIL_free_image_data(image);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    image = SOIL_load_image("awesomeface.png", &width_img, &height_img, 0, SOIL_LOAD_RGB);
-    GLuint texture2;
-    glGenTextures(1, &texture2);
-    glBindTexture(GL_TEXTURE_2D, texture2);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width_img, height_img, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    SOIL_free_image_data(image);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
+    GLuint texture = Texture::Load("boxWood.png");
+    GLuint texture2 = Texture::Load("boxWoodSpecular.png");
+    GLuint texture3 = Texture::Load("matrix.jpg");
 
     proj = glm::perspective(glm::radians(45.0f), (float)width/(float)height, 0.1f, 100.0f);
-
 
     glEnable(GL_DEPTH_TEST); //enable check z buffer
 
@@ -168,7 +141,7 @@ int main (int argc, char *argv[])
     };
     caclulate_delta_time();
 
-    glm::vec3 lightPos(0.0f,  0.9f, -1.5f);
+    glm::vec3 lightPos(0.0f,  0.8f, -1.5f);
 
     while(!glfwWindowShouldClose(window))
     {
@@ -183,46 +156,30 @@ int main (int argc, char *argv[])
         //cubes
         GLfloat timeValue = glfwGetTime();
         shaderSimple.Use();
-        GLuint viewLoc = glGetUniformLocation(shaderSimple.GetProgram(), "view");
-        GLuint projectionLoc = glGetUniformLocation(shaderSimple.GetProgram(), "projection");
-        GLuint modelLoc = glGetUniformLocation(shaderSimple.GetProgram(), "model");
-        GLuint normalMatrixLoc = glGetUniformLocation(shaderSimple.GetProgram(), "normalMatrix");
-        GLint vertexShiftMix = glGetUniformLocation(shaderSimple.GetProgram(), "shiftMix");
-        GLint viewPosInt = glGetUniformLocation(shaderSimple.GetProgram(), "viewPos");
-        //material
-        GLint ambientLoc= glGetUniformLocation(shaderSimple.GetProgram(), "material.ambient");
-        GLint diffuseLoc = glGetUniformLocation(shaderSimple.GetProgram(), "material.diffuse");
-        GLint specularLoc = glGetUniformLocation(shaderSimple.GetProgram(), "material.specular");
-        GLint shininessLoc = glGetUniformLocation(shaderSimple.GetProgram(), "material.shininess");
 
-        GLint lightAmbientLoc = glGetUniformLocation(shaderSimple.GetProgram(), "light.ambient");
-        GLint lightDiffuseLoc = glGetUniformLocation(shaderSimple.GetProgram(), "light.diffuse");
-        GLint lightSpecularLoc = glGetUniformLocation(shaderSimple.GetProgram(), "light.specular");
-        GLint lightPositionLoc = glGetUniformLocation(shaderSimple.GetProgram(), "light.position");
-
-        glUniform3f(ambientLoc, 1.0f, 0.5f, 0.31f);
-        glUniform3f(diffuseLoc, 1.0f, 0.5f, 0.31f);
-        glUniform3f(specularLoc, 0.5f, 0.5f, 0.5f);
-        glUniform1f(shininessLoc, 32.0f);
-
-        glUniform3f(lightAmbientLoc, 0.2f, 0.2f, 0.2f);
-        glUniform3f(lightDiffuseLoc, 0.5f, 0.5f, 0.5f);
-        glUniform3f(lightSpecularLoc, 1.0f, 1.0f, 1.0f);
-        glUniform3f(lightPositionLoc, lightPos.x, lightPos.y, lightPos.z);
-
-        glUniform3f(viewPosInt, cameraPosition.x, cameraPosition.y, cameraPosition.z);
-        glUniform1f(vertexShiftMix, shiftMix);
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(proj));
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
-        glUniform1i(glGetUniformLocation(shaderSimple.GetProgram(), "ourTexture"), 0);
+        shaderSimple.SetValue("material.diffuse", 0);
+
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
-        glUniform1i(glGetUniformLocation(shaderSimple.GetProgram(), "ourTexture2"), 1);
+        shaderSimple.SetValue("material.specular", 1);
+
+        shaderSimple.SetValue("material.shininess", 32.0f);
+
+        shaderSimple.SetValue("light.ambient", 0.2f, 0.2f, 0.2f);
+        shaderSimple.SetValue("light.diffuse", 0.5f, 0.5f, 0.5f);
+        shaderSimple.SetValue("light.specular", 01.0f, 1.0f, 1.0f);
+        shaderSimple.SetValue("light.position", lightPos);
+
+        shaderSimple.SetValue("viewPos", cameraPosition);
+        shaderSimple.SetValue("shiftMix", shiftMix);
 
         glBindVertexArray(VAO);
        // glDrawElements(GL_TRIANGLES, 16, GL_UNSIGNED_INT, 0);
+
+        shaderSimple.SetValue("view", view);
+        shaderSimple.SetValue("projection", proj);
 
         for(GLuint i = 0; i < 7; i++)
         {
@@ -232,8 +189,8 @@ int main (int argc, char *argv[])
           GLfloat angle = timeValue * glm::radians(5.0f) * (i + 1);
          // model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
           glm::mat3 normalMatrix = glm::transpose(glm::inverse(model));
-          glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-          glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
+          shaderSimple.SetValue("model", model);
+          shaderSimple.SetValue("normalMatrix", normalMatrix);
           glDrawArrays(GL_TRIANGLES, 0, 36);
         }
         glBindVertexArray(0);
@@ -249,15 +206,11 @@ int main (int argc, char *argv[])
         model = glm::scale(model, glm::vec3(0.2f));
 
         shaderLamp.Use();
-        viewLoc = glGetUniformLocation(shaderLamp.GetProgram(), "view");
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        projectionLoc = glGetUniformLocation(shaderLamp.GetProgram(), "projection");
-        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(proj));
-        modelLoc = glGetUniformLocation(shaderLamp.GetProgram(), "model");
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        shaderLamp.SetValue("view", view);
+        shaderLamp.SetValue("projection", proj);
+        shaderLamp.SetValue("model", model);
         glm::mat3 normalMatrix = glm::transpose(glm::inverse(model));
-        normalMatrixLoc = glGetUniformLocation(shaderLamp.GetProgram(), "normalMatrix");
-        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
+        shaderLamp.SetValue("normalMatrix", normalMatrix);
 
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);

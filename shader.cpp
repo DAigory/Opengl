@@ -56,6 +56,31 @@ GLuint Shader::MakeShader(std::string body, GLenum shaderType, const GLchar* pat
         return shader;
 }
 
+void Shader::SetValue(const GLchar* name, int value){
+     glUniform1i(this->GetUniformId(name), value);
+}
+void Shader::SetValue(const GLchar* name, float a, float b, float c){
+     glUniform3f(this->GetUniformId(name), a, b, c);
+}
+void Shader::SetValue(const GLchar* name, glm::vec3 value){
+    this->SetValue(name, value.x, value.y, value.z);
+}
+void Shader::SetValue(const GLchar* name, float value){
+     glUniform1f(this->GetUniformId(name), value);
+}
+
+void Shader::SetValue(const GLchar* name, glm::mat4 value){
+     glUniformMatrix4fv(this->GetUniformId(name), 1, GL_FALSE, glm::value_ptr(value));
+}
+
+void Shader::SetValue(const GLchar* name, glm::mat3 value){
+     glUniformMatrix3fv(this->GetUniformId(name), 1, GL_FALSE, glm::value_ptr(value));
+}
+
+GLuint Shader::GetUniformId(const GLchar* name){
+    return glGetUniformLocation(this->GetProgram(), name);
+}
+
 std::string  Shader::ReadFile(const GLchar* path){
      std::string code;
      std::ifstream ShaderFile;
