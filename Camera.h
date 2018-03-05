@@ -57,6 +57,14 @@ public:
              this->Position -= this->Front * this->GetVelocity(deltaTime);
         }
 
+        void ToUp(float deltaTime){
+             this->Position += this->Up * this->GetVelocity(deltaTime);
+        }
+
+        void ToDown(float deltaTime){
+             this->Position -= this->Up * this->GetVelocity(deltaTime);
+        }
+
         void ProcessMouseMovement(GLfloat xoffset, GLfloat yoffset, float deltaTime, GLboolean constrainPitch = true)
         {
             xoffset *= this->MouseSensitivity * deltaTime;

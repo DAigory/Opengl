@@ -5,7 +5,7 @@
 #include <sstream>
 #include <iostream>
 
-#include <GL/glew.h>; // Подключаем glew для того, чтобы получить все необходимые заголовочные файлы OpenGL
+#include <GL/glew.h> // Подключаем glew для того, чтобы получить все необходимые заголовочные файлы OpenGL
 
 class Shader
 {
@@ -16,5 +16,5 @@ public:
 private:
     GLuint Program;
     std::string  ReadFile(const GLchar* path);
-    GLuint MakeShader(std::string body, GLenum shaderType);
+    GLuint MakeShader(std::string body, GLenum shaderType, const GLchar* vertexPath);
 };

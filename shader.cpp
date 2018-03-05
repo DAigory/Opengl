@@ -7,8 +7,8 @@ void Shader::Use(){
 Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath)
 {
         GLuint vertex, fragment;
-        vertex = this->MakeShader(this->ReadFile("shaders/shader.v"), GL_VERTEX_SHADER);
-        fragment = this->MakeShader(this->ReadFile("shaders/shader.f"), GL_FRAGMENT_SHADER);
+        vertex = this->MakeShader(this->ReadFile(vertexPath), GL_VERTEX_SHADER, vertexPath);
+        fragment = this->MakeShader(this->ReadFile(fragmentPath), GL_FRAGMENT_SHADER, fragmentPath);
         this->Program = glCreateProgram();
         glAttachShader(this->Program, vertex);
         glAttachShader(this->Program, fragment);
@@ -29,7 +29,7 @@ GLuint Shader::GetProgram(){
     return this->Program;
 }
 
-GLuint Shader::MakeShader(std::string body, GLenum shaderType){
+GLuint Shader::MakeShader(std::string body, GLenum shaderType, const GLchar* path){
         GLuint shader;
         GLint success;
         GLchar infoLog[512];
@@ -50,7 +50,8 @@ GLuint Shader::MakeShader(std::string body, GLenum shaderType){
             if(shaderType == GL_FRAGMENT_SHADER){
                 shaderTypeText = "fragment";
             }
-            std::cout << "ERROR::SHADER::"<< shaderTypeText << "::COMPILATION_FAILED\n" << infoLog << std::endl;
+            std::cout << "ERROR::SHADER::"<< shaderTypeText << "::COMPILATION_FAILED\n" << infoLog << "file: "<< path << std::endl;
+
         }
         return shader;
 }
@@ -60,7 +61,7 @@ std::string  Shader::ReadFile(const GLchar* path){
      std::ifstream ShaderFile;
 
      // ensures ifstream objects can throw exceptions:
-     ShaderFile.exceptions (std::ifstream::badbit);
+     ShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
      try
      {
          // Open files
@@ -75,7 +76,7 @@ std::string  Shader::ReadFile(const GLchar* path){
      }
      catch (std::ifstream::failure e)
      {
-         std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << path << std::endl;
+         std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ fileName:" << path << std::endl;
      }
      return code;
 }

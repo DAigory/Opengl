@@ -27,8 +27,11 @@ float fov = 45;
 
 Controller* controller;
 
+glm::vec3 shiftPos;
+
 int main (int argc, char *argv[])
 {
+    shiftPos = glm::vec3();
   //Инициализация GLFW
   	glfwInit();
   	//Настройка GLFW
@@ -42,7 +45,6 @@ int main (int argc, char *argv[])
   	//Выключение возможности изменения размера окна
   	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-
   	GLFWwindow* window = glfwCreateWindow(1920, 1080, "LearnOpenGL", nullptr, nullptr);
     if (window == nullptr)
     {
@@ -51,9 +53,10 @@ int main (int argc, char *argv[])
     	return -1;
     }
 
-
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); //disabel cursor
+
     glfwMakeContextCurrent(window);
+
 
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK)
@@ -66,7 +69,7 @@ int main (int argc, char *argv[])
 
     glViewport(0, 0, width, height);
 
-    Camera camera = Camera();
+    Camera camera = Camera(glm::vec3(0,0, 5));
     controller = new Controller(&camera, width, height);
 
     glfwSetKeyCallback(window, key_callback);
@@ -77,11 +80,7 @@ int main (int argc, char *argv[])
         0, 1, 3,
         1, 2, 3,
     };
-    GLfloat texCoords[] = {
-        0.0f, 0.0f,  // Нижний левый угол
-        1.0f, 0.0f,  // Нижний правый угол
-        0.5f, 1.0f   // Верхняя центральная сторона
-    };
+
     GLuint VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -95,22 +94,31 @@ int main (int argc, char *argv[])
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3* sizeof(GLfloat)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(3* sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0); // Note that this is allowed, the call to glVertexAttribPointer registered VBO as the currently bound vertex buffer object so afterwards we can safely unbind
 
     glBindVertexArray(0); // Unbind VAO (it's always a good thing to unbind any buffer/array to prevent strange bugs), remember: do NOT unbind the EBO, keep it bound to this VAO
 
+    GLuint lightVAO;
+    glGenVertexArrays(1, &lightVAO);
+    glBindVertexArray(lightVAO);
+    // Так как VBO объекта-контейнера уже содержит все необходимые данные, то нам нужно только связать с ним новый VAO
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    // Настраиваем атрибуты (нашей лампе понадобятся только координаты вершин)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0); // Note that this is allowed, the call to glVertexAttribPointer registered VBO as the currently bound vertex buffer object so afterwards we can safely unbind
+    glBindVertexArray(0);
+
     GLint nrAttributes;
     glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
-    std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
-    Shader shader = Shader("shaders/shader.v", "shaders/shader.f");
-    GLint vertexColorLocation = glGetUniformLocation(shader.GetProgram(), "ourColor");
-    GLint vertexShiftMix = glGetUniformLocation(shader.GetProgram(), "shiftMix");
+    Shader shaderSimple = Shader("shaders/simple.vert", "shaders/simple.frag");
+    Shader shaderLamp = Shader("shaders/simple.vert", "shaders/lamp.frag");
 
     int width_img, height_img;
     unsigned char* image = SOIL_load_image("box.jpg", &width_img, &height_img, 0, SOIL_LOAD_RGB);
@@ -143,23 +151,25 @@ int main (int argc, char *argv[])
     SOIL_free_image_data(image);
     glBindTexture(GL_TEXTURE_2D, 0);
 
+
     proj = glm::perspective(glm::radians(45.0f), (float)width/(float)height, 0.1f, 100.0f);
+
 
     glEnable(GL_DEPTH_TEST); //enable check z buffer
 
     glm::vec3 cubePositions[] = {
-      glm::vec3( 0.0f,  0.0f,  0.0f),
+      glm::vec3( 0.0f,  0.0f,  15.0f),
       glm::vec3( 2.0f,  5.0f, -15.0f),
-      glm::vec3(-1.5f, -2.2f, -2.5f),
+      glm::vec3(-1.5f, -2.2f, -15.5f),
       glm::vec3(-3.8f, -2.0f, -12.3f),
-      glm::vec3( 2.4f, -0.4f, -3.5f),
-      glm::vec3(-1.7f,  3.0f, -7.5f),
-      glm::vec3( 1.3f, -2.0f, -2.5f),
-      glm::vec3( 1.5f,  2.0f, -2.5f),
+      glm::vec3( 1.3f, -2.0f, -15.5f),
+      glm::vec3( 1.5f,  2.0f, -15.5f),
       glm::vec3( 1.5f,  0.2f, -1.5f),
-      glm::vec3(-1.3f,  1.0f, -1.5f)
     };
     caclulate_delta_time();
+
+    glm::vec3 lightPos(0.0f,  0.9f, -1.5f);
+
     while(!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
@@ -167,38 +177,78 @@ int main (int argc, char *argv[])
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        glm::mat4 view;
+        view = camera.GetViewMatrix();
+        glm::vec3 cameraPosition = camera.Position;
+        //cubes
         GLfloat timeValue = glfwGetTime();
-        GLfloat greenValue = (sin(timeValue) / 2) + 0.5;
-        shader.Use();
-        glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+        shaderSimple.Use();
+        GLuint viewLoc = glGetUniformLocation(shaderSimple.GetProgram(), "view");
+        GLuint projectionLoc = glGetUniformLocation(shaderSimple.GetProgram(), "projection");
+        GLuint modelLoc = glGetUniformLocation(shaderSimple.GetProgram(), "model");
+        GLuint normalMatrixLoc = glGetUniformLocation(shaderSimple.GetProgram(), "normalMatrix");
+        GLint objectColorLoc = glGetUniformLocation(shaderSimple.GetProgram(), "objectColor");
+        GLint lightColorLoc  = glGetUniformLocation(shaderSimple.GetProgram(), "lightColor");
+        GLint vertexShiftMix = glGetUniformLocation(shaderSimple.GetProgram(), "shiftMix");
+        GLint lightPosInt = glGetUniformLocation(shaderSimple.GetProgram(), "lightPos");
+        GLint viewPosInt = glGetUniformLocation(shaderSimple.GetProgram(), "viewPos");
+        glUniform3f(lightPosInt, lightPos.x, lightPos.y, lightPos.z);
+        glUniform3f(viewPosInt, cameraPosition.x, cameraPosition.y, cameraPosition.z);
+        glUniform3f(objectColorLoc, 1.0f, 0.5f, 0.31f);
+        glUniform3f(lightColorLoc,  1.0f, 1.0f, 1.0f); // зададим цвет источника света (белый)
         glUniform1f(vertexShiftMix, shiftMix);
-        GLuint viewLoc = glGetUniformLocation(shader.GetProgram(), "view");
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(camera.GetViewMatrix()));
-        GLuint projectionLoc = glGetUniformLocation(shader.GetProgram(), "projection");
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(proj));
-
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
-        glUniform1i(glGetUniformLocation(shader.GetProgram(), "ourTexture"), 0);
+        glUniform1i(glGetUniformLocation(shaderSimple.GetProgram(), "ourTexture"), 0);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
-        glUniform1i(glGetUniformLocation(shader.GetProgram(), "ourTexture2"), 1);
+        glUniform1i(glGetUniformLocation(shaderSimple.GetProgram(), "ourTexture2"), 1);
 
         glBindVertexArray(VAO);
        // glDrawElements(GL_TRIANGLES, 16, GL_UNSIGNED_INT, 0);
 
-        GLuint modelLoc = glGetUniformLocation(shader.GetProgram(), "model");
-        for(GLuint i = 0; i < 10; i++)
+
+        for(GLuint i = 0; i < 7; i++)
         {
           glm::mat4 model;
-          model = glm::translate(model, cubePositions[i]);
-          GLfloat angle = timeValue * glm::radians(20.0f) * (i + 1);
-          model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
+          glm::vec3 newPos = cubePositions[i] + shiftPos;
+          model = glm::translate(model, newPos);
+          GLfloat angle = timeValue * glm::radians(5.0f) * (i + 1);
+         // model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
+          glm::mat3 normalMatrix = glm::transpose(glm::inverse(model));
           glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+          glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
           glDrawArrays(GL_TRIANGLES, 0, 36);
         }
-
         glBindVertexArray(0);
+
+        GLfloat angle = glm::radians(1.1f) * deltaTime * 30;
+        glm::mat4 rotate;
+        rotate = glm::rotate(rotate, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+        lightPos = glm::vec4(lightPos.x, lightPos.y,lightPos.z,0) * rotate;
+
+        //lamp
+        glm::mat4 model = glm::mat4();
+        model = glm::translate(model, lightPos);
+        model = glm::scale(model, glm::vec3(0.2f));
+
+        shaderLamp.Use();
+        viewLoc = glGetUniformLocation(shaderLamp.GetProgram(), "view");
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+        projectionLoc = glGetUniformLocation(shaderLamp.GetProgram(), "projection");
+        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(proj));
+        modelLoc = glGetUniformLocation(shaderLamp.GetProgram(), "model");
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        glm::mat3 normalMatrix = glm::transpose(glm::inverse(model));
+        normalMatrixLoc = glGetUniformLocation(shaderLamp.GetProgram(), "normalMatrix");
+        glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE, glm::value_ptr(normalMatrix));
+
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
+
         glfwSwapBuffers(window);
         caclulate_delta_time();
     }
@@ -211,6 +261,7 @@ int main (int argc, char *argv[])
     return 0;
 }
 
+
 void caclulate_delta_time(){
     GLfloat currentFrame = glfwGetTime();
     deltaTime = currentFrame - lastFrame;
@@ -220,8 +271,6 @@ void caclulate_delta_time(){
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
     controller->Key_callback(window, key, scancode, action, mode, deltaTime);
-    // Когда пользователь нажимает ESC, мы устанавливаем свойство WindowShouldClose в true,
-    // и приложение после этого закроется
     if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     	glfwSetWindowShouldClose(window, GL_TRUE);
     if(key == GLFW_KEY_LEFT && action == GLFW_REPEAT  ){
@@ -230,6 +279,19 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     if(key == GLFW_KEY_RIGHT && action == GLFW_REPEAT  ){
             shiftMix -= 0.01;
     }
+
+    if(key == GLFW_KEY_I){
+        shiftPos.y += 0.1;
+    }
+    if(key == GLFW_KEY_K){
+            shiftPos.y  -= 0.1;
+        }
+        if(key == GLFW_KEY_J){
+                shiftPos.x  -= 0.1;
+            }
+            if(key == GLFW_KEY_L){
+                    shiftPos.x  += 0.1;
+                }
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos){
