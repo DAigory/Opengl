@@ -69,7 +69,7 @@ int main (int argc, char *argv[])
 
     glViewport(0, 0, width, height);
 
-    Camera camera = Camera(glm::vec3(0,0, 5));
+    Camera camera = Camera(glm::vec3(1, 0.0, 3));
     controller = new Controller(&camera, width, height);
 
     glfwSetKeyCallback(window, key_callback);
@@ -187,15 +187,30 @@ int main (int argc, char *argv[])
         GLuint projectionLoc = glGetUniformLocation(shaderSimple.GetProgram(), "projection");
         GLuint modelLoc = glGetUniformLocation(shaderSimple.GetProgram(), "model");
         GLuint normalMatrixLoc = glGetUniformLocation(shaderSimple.GetProgram(), "normalMatrix");
-        GLint objectColorLoc = glGetUniformLocation(shaderSimple.GetProgram(), "objectColor");
-        GLint lightColorLoc  = glGetUniformLocation(shaderSimple.GetProgram(), "lightColor");
         GLint vertexShiftMix = glGetUniformLocation(shaderSimple.GetProgram(), "shiftMix");
-        GLint lightPosInt = glGetUniformLocation(shaderSimple.GetProgram(), "lightPos");
         GLint viewPosInt = glGetUniformLocation(shaderSimple.GetProgram(), "viewPos");
-        glUniform3f(lightPosInt, lightPos.x, lightPos.y, lightPos.z);
+        //material
+        GLint ambientLoc= glGetUniformLocation(shaderSimple.GetProgram(), "material.ambient");
+        GLint diffuseLoc = glGetUniformLocation(shaderSimple.GetProgram(), "material.diffuse");
+        GLint specularLoc = glGetUniformLocation(shaderSimple.GetProgram(), "material.specular");
+        GLint shininessLoc = glGetUniformLocation(shaderSimple.GetProgram(), "material.shininess");
+
+        GLint lightAmbientLoc = glGetUniformLocation(shaderSimple.GetProgram(), "light.ambient");
+        GLint lightDiffuseLoc = glGetUniformLocation(shaderSimple.GetProgram(), "light.diffuse");
+        GLint lightSpecularLoc = glGetUniformLocation(shaderSimple.GetProgram(), "light.specular");
+        GLint lightPositionLoc = glGetUniformLocation(shaderSimple.GetProgram(), "light.position");
+
+        glUniform3f(ambientLoc, 1.0f, 0.5f, 0.31f);
+        glUniform3f(diffuseLoc, 1.0f, 0.5f, 0.31f);
+        glUniform3f(specularLoc, 0.5f, 0.5f, 0.5f);
+        glUniform1f(shininessLoc, 32.0f);
+
+        glUniform3f(lightAmbientLoc, 0.2f, 0.2f, 0.2f);
+        glUniform3f(lightDiffuseLoc, 0.5f, 0.5f, 0.5f);
+        glUniform3f(lightSpecularLoc, 1.0f, 1.0f, 1.0f);
+        glUniform3f(lightPositionLoc, lightPos.x, lightPos.y, lightPos.z);
+
         glUniform3f(viewPosInt, cameraPosition.x, cameraPosition.y, cameraPosition.z);
-        glUniform3f(objectColorLoc, 1.0f, 0.5f, 0.31f);
-        glUniform3f(lightColorLoc,  1.0f, 1.0f, 1.0f); // зададим цвет источника света (белый)
         glUniform1f(vertexShiftMix, shiftMix);
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(proj));
