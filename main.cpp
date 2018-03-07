@@ -141,7 +141,7 @@ int main (int argc, char *argv[])
     };
     caclulate_delta_time();
 
-    glm::vec3 lightPos(0.0f,  0.8f, -1.5f);
+    glm::vec4 lightPos(0.0f,  0.8f, -1.5f, 1.0f);
 
     while(!glfwWindowShouldClose(window))
     {
@@ -170,7 +170,9 @@ int main (int argc, char *argv[])
         shaderSimple.SetValue("light.ambient", 0.2f, 0.2f, 0.2f);
         shaderSimple.SetValue("light.diffuse", 0.5f, 0.5f, 0.5f);
         shaderSimple.SetValue("light.specular", 01.0f, 1.0f, 1.0f);
-        shaderSimple.SetValue("light.position", lightPos);
+        shaderSimple.SetValue("light.position", view * lightPos);
+        shaderSimple.SetValue("light.linear",    0.09f);
+        shaderSimple.SetValue("light.quadratic", 0.032f);
 
         shaderSimple.SetValue("viewPos", cameraPosition);
         shaderSimple.SetValue("shiftMix", shiftMix);
@@ -198,19 +200,17 @@ int main (int argc, char *argv[])
         GLfloat angle = glm::radians(1.1f) * deltaTime * 30;
         glm::mat4 rotate;
         rotate = glm::rotate(rotate, angle, glm::vec3(0.0f, 1.0f, 0.0f));
-        lightPos = glm::vec4(lightPos.x, lightPos.y,lightPos.z,0) * rotate;
+        lightPos = lightPos * rotate;
 
         //lamp
         glm::mat4 model = glm::mat4();
-        model = glm::translate(model, lightPos);
+        model = glm::translate(model, glm::vec3(lightPos));
         model = glm::scale(model, glm::vec3(0.2f));
 
         shaderLamp.Use();
         shaderLamp.SetValue("view", view);
         shaderLamp.SetValue("projection", proj);
         shaderLamp.SetValue("model", model);
-        glm::mat3 normalMatrix = glm::transpose(glm::inverse(model));
-        shaderLamp.SetValue("normalMatrix", normalMatrix);
 
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);

@@ -65,6 +65,12 @@ void Shader::SetValue(const GLchar* name, float a, float b, float c){
 void Shader::SetValue(const GLchar* name, glm::vec3 value){
     this->SetValue(name, value.x, value.y, value.z);
 }
+void Shader::SetValue(const GLchar* name, float a, float b, float c, float d){
+     glUniform4f(this->GetUniformId(name), a, b, c, d);
+}
+void Shader::SetValue(const GLchar* name, glm::vec4 value){
+    this->SetValue(name, value.x, value.y, value.z, value.w);
+}
 void Shader::SetValue(const GLchar* name, float value){
      glUniform1f(this->GetUniformId(name), value);
 }

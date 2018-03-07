@@ -18,6 +18,8 @@ public:
     void SetValue(const GLchar* name, float a, float b, float c);
     void SetValue(const GLchar* name, glm::vec3 value);
     void SetValue(const GLchar* name, float value);
+    void SetValue(const GLchar* name, glm::vec4 value);
+    void SetValue(const GLchar* name, float a, float b, float c, float d);
     void SetValue(const GLchar* name, glm::mat4 value);
     void SetValue(const GLchar* name, glm::mat3 value);
 
