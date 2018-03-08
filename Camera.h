@@ -41,6 +41,14 @@ public:
               return glm::lookAt(this->Position, this->Position + this->Front, this->Up);
         }
 
+        glm::vec4 GetPosition4(){
+            return glm::vec4(this->Position.x, this->Position.y, this->Position.z, 1.0);
+        }
+
+        glm::vec4 GetFront4(){
+            return glm::vec4(this->Front.x, this->Front.y, this->Front.z, 0.0);
+        }
+
         void ToLeft(float deltaTime){
             this->Position -= this->Right * this->GetVelocity(deltaTime);
         }

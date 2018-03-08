@@ -142,6 +142,9 @@ int main (int argc, char *argv[])
     caclulate_delta_time();
 
     glm::vec4 lightPos(0.0f,  0.8f, -1.5f, 1.0f);
+    glm::vec4 lightDir(1.0f, 0.0f, 0.0f, 0.0f);
+    float cutOff = 5;
+    float outerCutOff = 8;
 
     while(!glfwWindowShouldClose(window))
     {
@@ -166,11 +169,17 @@ int main (int argc, char *argv[])
         shaderSimple.SetValue("material.specular", 1);
 
         shaderSimple.SetValue("material.shininess", 32.0f);
+        glm::vec4 a = view * camera.GetFront4();
+
+       // std::cout << "x: "<< a.x << "y: " << a.y << "z:  "<< a.z << std::endl;
 
         shaderSimple.SetValue("light.ambient", 0.2f, 0.2f, 0.2f);
         shaderSimple.SetValue("light.diffuse", 0.5f, 0.5f, 0.5f);
         shaderSimple.SetValue("light.specular", 01.0f, 1.0f, 1.0f);
-        shaderSimple.SetValue("light.position", view * lightPos);
+        shaderSimple.SetValue("light.position", glm::vec4(0,0,0,1));
+        shaderSimple.SetValue("light.direction", camera.GetFront4());
+        shaderSimple.SetValue("light.cutOff",  glm::cos(glm::radians(cutOff)));
+        shaderSimple.SetValue("light.outerCutOff",  glm::cos(glm::radians(outerCutOff)));
         shaderSimple.SetValue("light.linear",    0.09f);
         shaderSimple.SetValue("light.quadratic", 0.032f);
 
