@@ -131,20 +131,32 @@ int main (int argc, char *argv[])
     glEnable(GL_DEPTH_TEST); //enable check z buffer
 
     glm::vec3 cubePositions[] = {
-      glm::vec3( 0.0f,  0.0f,  15.0f),
-      glm::vec3( 2.0f,  5.0f, -15.0f),
-      glm::vec3(-1.5f, -2.2f, -15.5f),
-      glm::vec3(-3.8f, -2.0f, -12.3f),
-      glm::vec3( 1.3f, -2.0f, -15.5f),
-      glm::vec3( 1.5f,  2.0f, -15.5f),
-      glm::vec3( 1.5f,  0.2f, -1.5f),
+              glm::vec3( 0.0f,  0.0f,  0.0f),
+              glm::vec3( 2.0f,  5.0f, -15.0f),
+              glm::vec3(-1.5f, -2.2f, -2.5f),
+              glm::vec3(-3.8f, -2.0f, -12.3f),
+              glm::vec3( 2.4f, -0.4f, -3.5f),
+              glm::vec3(-1.7f,  3.0f, -7.5f),
+              glm::vec3( 1.3f, -2.0f, -2.5f),
+              glm::vec3( 1.5f,  2.0f, -2.5f),
+              glm::vec3( 1.5f,  0.2f, -1.5f),
+              glm::vec3(-1.3f,  1.0f, -1.5f)
     };
     caclulate_delta_time();
 
     glm::vec4 lightPos(0.0f,  0.8f, -1.5f, 1.0f);
     glm::vec4 lightDir(1.0f, 0.0f, 0.0f, 0.0f);
+    glm::vec4 direction(-1.0f, 0.0f, 0.0f, 0.0f);
+
     float cutOff = 5;
     float outerCutOff = 8;
+
+    glm::vec4 pointLightPositions[] = {
+    	glm::vec4( 0.7f,  0.2f,  2.0f, 1.0f),
+    	glm::vec4( 2.3f, -3.3f, -4.0f, 1.0f),
+    	glm::vec4(-4.0f,  2.0f, -12.0f, 1.0f),
+    	glm::vec4( 0.0f,  0.0f, -3.0f, 1.0f)
+    };
 
     while(!glfwWindowShouldClose(window))
     {
@@ -173,15 +185,42 @@ int main (int argc, char *argv[])
 
        // std::cout << "x: "<< a.x << "y: " << a.y << "z:  "<< a.z << std::endl;
 
-        shaderSimple.SetValue("light.ambient", 0.2f, 0.2f, 0.2f);
-        shaderSimple.SetValue("light.diffuse", 0.5f, 0.5f, 0.5f);
-        shaderSimple.SetValue("light.specular", 01.0f, 1.0f, 1.0f);
-        shaderSimple.SetValue("light.position", glm::vec4(0,0,0,1));
-        shaderSimple.SetValue("light.direction", camera.GetFront4());
-        shaderSimple.SetValue("light.cutOff",  glm::cos(glm::radians(cutOff)));
-        shaderSimple.SetValue("light.outerCutOff",  glm::cos(glm::radians(outerCutOff)));
-        shaderSimple.SetValue("light.linear",    0.09f);
-        shaderSimple.SetValue("light.quadratic", 0.032f);
+        shaderSimple.SetValue("projectLight.ambient", 0.2f, 0.2f, 0.2f);
+        shaderSimple.SetValue("projectLight.diffuse", 0.5f, 0.5f, 0.5f);
+        shaderSimple.SetValue("projectLight.specular", 1.0f, 1.0f, 1.0f);
+        shaderSimple.SetValue("projectLight.position", glm::vec4(0,0,0,1));
+        shaderSimple.SetValue("projectLight.direction", view * camera.GetFront4());
+        shaderSimple.SetValue("projectLight.cutOff",  glm::cos(glm::radians(cutOff)));
+        shaderSimple.SetValue("projectLight.outerCutOff",  glm::cos(glm::radians(outerCutOff)));
+        shaderSimple.SetValue("projectLight.linear",    0.09f);
+        shaderSimple.SetValue("projectLight.quadratic", 0.032f);
+
+        shaderSimple.SetValue("dirLight.ambient", 0.2f, 0.2f, 0.2f);
+        shaderSimple.SetValue("dirLight.diffuse", 0.5f, 0.5f, 0.5f);
+        shaderSimple.SetValue("dirLight.specular", 1.0f, 1.0f, 1.0f);
+        shaderSimple.SetValue("dirLight.direction", direction);
+
+        int count = sizeof(pointLightPositions) / sizeof(*pointLightPositions);
+
+        GLfloat angle = glm::radians(1.1f) * deltaTime * 30;
+        glm::mat4 rotate;
+        rotate = glm::rotate(rotate, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+
+
+        for(int i =0;i<count;i++){
+            glm::vec3 newPos =  pointLightPositions[i]*rotate;
+            pointLightPositions[i] = glm::vec4(newPos.x, newPos.y,newPos.z, 1.0f);
+            glm::vec3 position3 = pointLightPositions[i];
+            glm::vec4 position = glm::vec4(position3.x, position3.y, position3.z, 1);
+            std::string pointLight = "pointLight[";
+            pointLight += std::to_string(i) + "].";
+            shaderSimple.SetValue((pointLight + "ambient").c_str(), 0.2f, 0.2f, 0.2f);
+            shaderSimple.SetValue((pointLight + "diffuse").c_str(), 0.5f, 0.5f, 0.5f);
+            shaderSimple.SetValue((pointLight + "specular").c_str(), 01.0f, 1.0f, 1.0f);
+            shaderSimple.SetValue((pointLight + "position").c_str(), view * position);
+            shaderSimple.SetValue((pointLight + "linear").c_str(),    0.09f);
+            shaderSimple.SetValue((pointLight + "quadratic").c_str(), 0.032f);
+        }
 
         shaderSimple.SetValue("viewPos", cameraPosition);
         shaderSimple.SetValue("shiftMix", shiftMix);
@@ -192,7 +231,7 @@ int main (int argc, char *argv[])
         shaderSimple.SetValue("view", view);
         shaderSimple.SetValue("projection", proj);
 
-        for(GLuint i = 0; i < 7; i++)
+        for(GLuint i = 0; i < sizeof(cubePositions)/ sizeof(*cubePositions); i++)
         {
           glm::mat4 model;
           glm::vec3 newPos = cubePositions[i] + shiftPos;
@@ -206,23 +245,23 @@ int main (int argc, char *argv[])
         }
         glBindVertexArray(0);
 
-        GLfloat angle = glm::radians(1.1f) * deltaTime * 30;
-        glm::mat4 rotate;
-        rotate = glm::rotate(rotate, angle, glm::vec3(0.0f, 1.0f, 0.0f));
-        lightPos = lightPos * rotate;
-
         //lamp
-        glm::mat4 model = glm::mat4();
-        model = glm::translate(model, glm::vec3(lightPos));
-        model = glm::scale(model, glm::vec3(0.2f));
+
 
         shaderLamp.Use();
         shaderLamp.SetValue("view", view);
         shaderLamp.SetValue("projection", proj);
-        shaderLamp.SetValue("model", model);
-
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        for(int i =0; i<count; i++){
+          glm::vec4 position = pointLightPositions[i];
+          glm::mat4 model = glm::mat4();
+          model = glm::translate(model, glm::vec3(position));
+          model = glm::scale(model, glm::vec3(0.2f));
+          shaderLamp.SetValue("model", model);
+          glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+
         glBindVertexArray(0);
 
         glfwSwapBuffers(window);
