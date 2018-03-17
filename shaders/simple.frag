@@ -48,17 +48,21 @@ uniform Material material;
 uniform float shiftMix;
 
 uniform vec3 viewPos;
+uniform samplerCube cubemap;
 
 in vec3 Normal;
 in vec3 FragPos;
 in mat4 View;
 in vec2 TexCoords;
+in vec3 textureDir;
 
 out vec4 color;
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
 vec3 CalcProjLight(ProjectLight light, vec3 normal, vec3 viewDir);
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 viewDir);
+
+float ratio = 1.00 / 5.42;
 
 void main()
 {
@@ -70,7 +74,10 @@ void main()
      for(int i = 0; i < NR_POINT_LIGHTS; i++){
         result += CalcPointLight(pointLight[i], normal, viewDir);
      }
-     color = vec4(result,1);
+     vec3 spec = vec3(texture(material.texture_specular1, TexCoords));
+     vec3 R = refract(viewDir, normalize(Normal), ratio);
+     vec3 cubMapColor = texture(cubemap, R).rgb;
+     color = vec4(cubMapColor , 1);
 }
 
 vec3 CalcProjLight(ProjectLight light, vec3 normal, vec3 viewDir){

@@ -9,6 +9,7 @@
 #include "Shader.h"
 #include "Controller.h"
 #include "Model.h"
+#include "TextureLoader.h"
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -77,12 +78,15 @@ int main (int argc, char *argv[])
 
     Shader shaderSimple = Shader("shaders/simple.vert", "shaders/simple.frag");
     Shader shaderLamp = Shader("shaders/simple.vert", "shaders/lamp.frag");
+    Shader shaderCubMap = Shader("shaders/skybox.vert", "shaders/skybox.frag");
 
     proj = glm::perspective(glm::radians(45.0f), (float)width/(float)height, 0.1f, 100.0f);
     Model soldierModel("assets/soldier/nanosuit.obj");
     Model cubeModel("assets/primitives/cub.obj");
 
-    glEnable(GL_DEPTH_TEST); //enable check z buffer
+    GLuint cubMapTexture = TextureLoader::LoadCubMap("sky", "assets/cubmap/skybox");
+
+    glEnable(GL_DEPTH_TEST);
 
     caclulate_delta_time();
 
@@ -105,12 +109,23 @@ int main (int argc, char *argv[])
         glfwPollEvents();
         controller->Update(deltaTime);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         glm::mat4 view;
         view = camera.GetViewMatrix();
         //cubes
         GLfloat timeValue = glfwGetTime();
+
+        glDepthFunc(GL_LEQUAL);
+        shaderCubMap.Use();
+        glm::mat4 viewOnlyRotate = glm::mat4(glm::mat3(view));
+        shaderCubMap.SetValue("view", viewOnlyRotate);
+        shaderCubMap.SetValue("projection", proj);
+        shaderCubMap.SetValue("skybox", 0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubMapTexture);
+        cubeModel.Draw(shaderCubMap);
+        glDepthFunc(GL_LESS);
+
         shaderSimple.Use();
 
         shaderSimple.SetValue("material.shininess", 32.0f);
@@ -132,6 +147,8 @@ int main (int argc, char *argv[])
         shaderSimple.SetValue("dirLight.diffuse", 0.5f, 0.5f, 0.5f);
         shaderSimple.SetValue("dirLight.specular", 1.0f, 1.0f, 1.0f);
         shaderSimple.SetValue("dirLight.direction", direction);
+        shaderSimple.SetValue("cubemap",0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubMapTexture);
 
          shaderSimple.SetValue("view", view);
          shaderSimple.SetValue("projection", proj);
