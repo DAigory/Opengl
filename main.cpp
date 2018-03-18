@@ -76,9 +76,9 @@ int main (int argc, char *argv[])
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
-    Shader shaderSimple = Shader("shaders/simple.vert", "shaders/simple.frag", "shaders/test.geom");
+    Shader shaderSimple = Shader("shaders/simple.vert", "shaders/simple.frag");
     Shader shaderLamp = Shader("shaders/simple.vert", "shaders/lamp.frag");
-    Shader shaderGeom = Shader("shaders/simple.vert", "shaders/lamp.frag", "shaders/test.geom");
+    Shader shaderNormal = Shader("shaders/normals/normal.vert", "shaders/normals/constColor.frag", "shaders/normals/normal.geom");
     Shader shaderCubMap = Shader("shaders/skybox.vert", "shaders/skybox.frag");
 
     proj = glm::perspective(glm::radians(45.0f), (float)width/(float)height, 0.1f, 100.0f);
@@ -89,7 +89,7 @@ int main (int argc, char *argv[])
 
     shaderSimple.BindUniformBlock("Matrices", 0);
     shaderCubMap.BindUniformBlock("Matrices", 0);
-    shaderGeom.BindUniformBlock("Matrices", 0);
+    shaderNormal.BindUniformBlock("Matrices", 0);
 
     unsigned int uboMatrices;
     glGenBuffers(1, &uboMatrices);
@@ -195,6 +195,10 @@ int main (int argc, char *argv[])
              shaderSimple.SetValue((pointLight + "linear").c_str(),    0.09f);
              shaderSimple.SetValue((pointLight + "quadratic").c_str(), 0.032f);
          }
+
+         shaderNormal.Use();
+         shaderNormal.SetValue("model", model);
+         soldierModel.Draw(shaderNormal);
          //lamp draw like cubes
          shaderLamp.Use();
          shaderLamp.SetValue("view", view);
@@ -206,13 +210,8 @@ int main (int argc, char *argv[])
            model = glm::translate(model, glm::vec3(position));
            model = glm::scale(model, glm::vec3(0.2f));
            shaderLamp.SetValue("model", model);
-          // cubeModel.Draw(shaderLamp);
+           cubeModel.Draw(shaderLamp);
          }
-
-         model = glm::mat4();
-         shaderGeom.Use();
-         shaderGeom.SetValue("model", model);
-         //cubeModel.Draw(shaderGeom);
 
          //skybox
          glDepthFunc(GL_LEQUAL);
