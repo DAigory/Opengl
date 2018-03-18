@@ -86,6 +86,20 @@ int main (int argc, char *argv[])
 
     GLuint cubMapTexture = TextureLoader::LoadCubMap("sky", "assets/cubmap/skybox");
 
+    shaderSimple.BindUniformBlock("Matrices", 0);
+    shaderCubMap.BindUniformBlock("Matrices", 0);
+
+    unsigned int uboMatrices;
+    glGenBuffers(1, &uboMatrices);
+    glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
+    glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), NULL, GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, uboMatrices, 0, 2 * sizeof(glm::mat4));
+
+    glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(proj));
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
     glEnable(GL_DEPTH_TEST);
 
     caclulate_delta_time();
@@ -103,7 +117,8 @@ int main (int argc, char *argv[])
     	glm::vec4(-4.0f,  2.0f, -12.0f, 1.0f),
     	glm::vec4( 0.0f,  0.0f, -3.0f, 1.0f)
     };
-
+    unsigned int lights_index = glGetUniformBlockIndex(shaderSimple.GetId(), "texture_diffuse1");
+     std::cout << lights_index << std::endl;
     while(!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
@@ -113,14 +128,17 @@ int main (int argc, char *argv[])
 
         glm::mat4 view;
         view = camera.GetViewMatrix();
+
+        glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
+        glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view));
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
         //cubes
         GLfloat timeValue = glfwGetTime();
 
         glDepthFunc(GL_LEQUAL);
         shaderCubMap.Use();
         glm::mat4 viewOnlyRotate = glm::mat4(glm::mat3(view));
-        shaderCubMap.SetValue("view", viewOnlyRotate);
-        shaderCubMap.SetValue("projection", proj);
+        shaderCubMap.SetValue("viewOnlyRotate", viewOnlyRotate);
         shaderCubMap.SetValue("skybox", 0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, cubMapTexture);
         cubeModel.Draw(shaderCubMap);
@@ -150,8 +168,8 @@ int main (int argc, char *argv[])
         shaderSimple.SetValue("cubemap",0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, cubMapTexture);
 
-         shaderSimple.SetValue("view", view);
-         shaderSimple.SetValue("projection", proj);
+         //shaderSimple.SetValue("view", view);
+        // shaderSimple.SetValue("projection", proj);
 
          glm::mat4 model;
          glm::vec3 newPos = shiftPos + glm::vec3(0, -1.5, 0.0);

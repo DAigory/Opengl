@@ -13,7 +13,9 @@ class Shader
 {
 public:
     Shader(const GLchar* vertexPath, const GLchar* fragmentPath);
-    GLuint GetProgram();
+    GLuint GetId();
+    GLuint GetUniformBlockId(const GLchar* name);
+    void BindUniformBlock(const GLchar* uniformBlockName, int pointBind);
     void SetValue(const GLchar* name, int value);
     void SetValue(const GLchar* name, float a, float b, float c);
     void SetValue(const GLchar* name, glm::vec3 value);

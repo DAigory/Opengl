@@ -25,7 +25,7 @@ Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath)
         glDeleteShader(fragment);
 }
 
-GLuint Shader::GetProgram(){
+GLuint Shader::GetId(){
     return this->Program;
 }
 
@@ -84,7 +84,16 @@ void Shader::SetValue(const GLchar* name, glm::mat3 value){
 }
 
 GLuint Shader::GetUniformId(const GLchar* name){
-    return glGetUniformLocation(this->GetProgram(), name);
+    return glGetUniformLocation(this->GetId(), name);
+}
+
+GLuint Shader::GetUniformBlockId(const GLchar* name){
+    return glGetUniformBlockIndex(this->GetId(), name);
+}
+
+void Shader::BindUniformBlock(const GLchar* uniformBlockName, int pointBind){
+    unsigned int uniformBlockId = this->GetUniformBlockId(uniformBlockName);
+    glUniformBlockBinding(this->GetId(), uniformBlockId, pointBind);
 }
 
 std::string  Shader::ReadFile(const GLchar* path){

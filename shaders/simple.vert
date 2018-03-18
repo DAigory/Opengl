@@ -1,8 +1,12 @@
 #version 330 core
 
+layout (std140) uniform Matrices
+{
+    mat4 projection;
+    mat4 view;
+};
+
 uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
 uniform mat3 normalMatrix;
 
 layout (location = 0) in vec3 position;
