@@ -10,7 +10,7 @@ class Model
         {
             loadModel(path);
         }
-        void Draw(Shader shader);
+        void Draw(Shader shader, GLuint = GL_TRIANGLES);
     private:
         /*  Данные модели  */
         vector<Mesh> meshes;

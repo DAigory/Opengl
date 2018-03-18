@@ -32,7 +32,7 @@ class Mesh {
         vector<Texture> textures;
         /*  Functions  */
         Mesh(vector<Vertex> vertices, vector<unsigned int> indices, vector<Texture> textures);
-        void Draw(Shader shader);
+        void Draw(Shader, GLuint = GL_TRIANGLES);
     private:
         /*  Render data  */
         unsigned int VAO, VBO, EBO;

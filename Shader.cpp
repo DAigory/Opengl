@@ -12,6 +12,26 @@ Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath)
         this->Program = glCreateProgram();
         glAttachShader(this->Program, vertex);
         glAttachShader(this->Program, fragment);
+        this->LinkProgram();
+        glDeleteShader(vertex);
+        glDeleteShader(fragment);
+}
+
+Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath, const GLchar* geometryPath)
+    :Shader(vertexPath, fragmentPath)
+{
+    GLuint geometry;
+    geometry = this->MakeShader(this->ReadFile(geometryPath), GL_GEOMETRY_SHADER, geometryPath);
+    glAttachShader(this->Program, geometry);
+    this->LinkProgram();
+    glDeleteShader(geometry);
+}
+
+GLuint Shader::GetId(){
+    return this->Program;
+}
+
+void Shader::LinkProgram(){
         glLinkProgram(this->Program);
         GLint success;
         GLchar infoLog[512];
@@ -21,12 +41,6 @@ Shader::Shader(const GLchar* vertexPath, const GLchar* fragmentPath)
             glGetProgramInfoLog(this->Program, 512, NULL, infoLog);
             std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
         }
-        glDeleteShader(vertex);
-        glDeleteShader(fragment);
-}
-
-GLuint Shader::GetId(){
-    return this->Program;
 }
 
 GLuint Shader::MakeShader(std::string body, GLenum shaderType, const GLchar* path){

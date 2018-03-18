@@ -13,6 +13,7 @@ class Shader
 {
 public:
     Shader(const GLchar* vertexPath, const GLchar* fragmentPath);
+    Shader(const GLchar* vertexPath, const GLchar* fragmentPath, const GLchar* geometrytPath);
     GLuint GetId();
     GLuint GetUniformBlockId(const GLchar* name);
     void BindUniformBlock(const GLchar* uniformBlockName, int pointBind);
@@ -31,4 +32,5 @@ private:
     std::string  ReadFile(const GLchar* path);
     GLuint MakeShader(std::string body, GLenum shaderType, const GLchar* vertexPath);
     GLuint GetUniformId(const GLchar* name);
+    void LinkProgram();
 };

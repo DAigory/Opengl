@@ -13,16 +13,16 @@ layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 normal;
 layout (location = 2) in vec2 texCoords;
 
-out vec3 Normal;
-out vec3 FragPos;
-out mat4 View;
-out vec2 TexCoords;
+out VS_OUT {
+    vec2 texCoords;
+    vec3 Normal;
+    vec3 pos;
+} vs_out;
 
 void main()
 {
     gl_Position = projection * view * model * vec4(position, 1.0);
-    FragPos = (view * model * vec4(position, 1.0)).xyz;
-    Normal = (view * vec4(normalMatrix * normal, 0)).xyz;
-    View = view;
-    TexCoords = texCoords;
+    vs_out.Normal = normal;
+    vs_out.texCoords = texCoords;
+    vs_out.pos = position;
 }

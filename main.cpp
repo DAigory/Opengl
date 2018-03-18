@@ -76,8 +76,9 @@ int main (int argc, char *argv[])
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
-    Shader shaderSimple = Shader("shaders/simple.vert", "shaders/simple.frag");
+    Shader shaderSimple = Shader("shaders/simple.vert", "shaders/simple.frag", "shaders/test.geom");
     Shader shaderLamp = Shader("shaders/simple.vert", "shaders/lamp.frag");
+    Shader shaderGeom = Shader("shaders/simple.vert", "shaders/lamp.frag", "shaders/test.geom");
     Shader shaderCubMap = Shader("shaders/skybox.vert", "shaders/skybox.frag");
 
     proj = glm::perspective(glm::radians(45.0f), (float)width/(float)height, 0.1f, 100.0f);
@@ -88,6 +89,7 @@ int main (int argc, char *argv[])
 
     shaderSimple.BindUniformBlock("Matrices", 0);
     shaderCubMap.BindUniformBlock("Matrices", 0);
+    shaderGeom.BindUniformBlock("Matrices", 0);
 
     unsigned int uboMatrices;
     glGenBuffers(1, &uboMatrices);
@@ -117,8 +119,7 @@ int main (int argc, char *argv[])
     	glm::vec4(-4.0f,  2.0f, -12.0f, 1.0f),
     	glm::vec4( 0.0f,  0.0f, -3.0f, 1.0f)
     };
-    unsigned int lights_index = glGetUniformBlockIndex(shaderSimple.GetId(), "texture_diffuse1");
-     std::cout << lights_index << std::endl;
+
     while(!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
@@ -134,15 +135,6 @@ int main (int argc, char *argv[])
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
         //cubes
         GLfloat timeValue = glfwGetTime();
-
-        glDepthFunc(GL_LEQUAL);
-        shaderCubMap.Use();
-        glm::mat4 viewOnlyRotate = glm::mat4(glm::mat3(view));
-        shaderCubMap.SetValue("viewOnlyRotate", viewOnlyRotate);
-        shaderCubMap.SetValue("skybox", 0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cubMapTexture);
-        cubeModel.Draw(shaderCubMap);
-        glDepthFunc(GL_LESS);
 
         shaderSimple.Use();
 
@@ -168,9 +160,6 @@ int main (int argc, char *argv[])
         shaderSimple.SetValue("cubemap",0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, cubMapTexture);
 
-         //shaderSimple.SetValue("view", view);
-        // shaderSimple.SetValue("projection", proj);
-
          glm::mat4 model;
          glm::vec3 newPos = shiftPos + glm::vec3(0, -1.5, 0.0);
          model = glm::translate(model, newPos);
@@ -190,6 +179,7 @@ int main (int argc, char *argv[])
          glm::mat4 rotate;
          rotate = glm::rotate(rotate, angle, glm::vec3(0.0f, 1.0f, 0.0f));
 
+         shaderSimple.SetValue("time", float(glfwGetTime()));
 
          for(int i =0;i<count;i++){
              glm::vec3 newPos =  pointLightPositions[i]*rotate;
@@ -216,8 +206,23 @@ int main (int argc, char *argv[])
            model = glm::translate(model, glm::vec3(position));
            model = glm::scale(model, glm::vec3(0.2f));
            shaderLamp.SetValue("model", model);
-           cubeModel.Draw(shaderLamp);
+          // cubeModel.Draw(shaderLamp);
          }
+
+         model = glm::mat4();
+         shaderGeom.Use();
+         shaderGeom.SetValue("model", model);
+         //cubeModel.Draw(shaderGeom);
+
+         //skybox
+         glDepthFunc(GL_LEQUAL);
+         shaderCubMap.Use();
+         glm::mat4 viewOnlyRotate = glm::mat4(glm::mat3(view));
+         shaderCubMap.SetValue("viewOnlyRotate", viewOnlyRotate);
+         shaderCubMap.SetValue("skybox", 0);
+         glBindTexture(GL_TEXTURE_CUBE_MAP, cubMapTexture);
+         //cubeModel.Draw(shaderCubMap);
+         glDepthFunc(GL_LESS);
 
          glfwSwapBuffers(window);
          caclulate_delta_time();
