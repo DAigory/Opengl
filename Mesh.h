@@ -27,6 +27,7 @@ struct Texture {
 class Mesh {
     public:
         /*  Mesh Data  */
+        unsigned int VAO;
         vector<Vertex> vertices;
         vector<unsigned int> indices;
         vector<Texture> textures;
@@ -35,7 +36,7 @@ class Mesh {
         void Draw(Shader, GLuint = GL_TRIANGLES);
     private:
         /*  Render data  */
-        unsigned int VAO, VBO, EBO;
+        unsigned int VBO, EBO;
         /*  Functions    */
         void setupMesh();
 };

@@ -5,15 +5,16 @@ using namespace std;
 class Model
 {
     public:
+        vector<Mesh> meshes;
         /*  Методы   */
         Model(char *path)
         {
             loadModel(path);
         }
         void Draw(Shader shader, GLuint = GL_TRIANGLES);
+
     private:
         /*  Данные модели  */
-        vector<Mesh> meshes;
         string directory;
         vector<Texture> textures_loaded;
         /*  Методы   */
