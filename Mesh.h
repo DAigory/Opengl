@@ -34,6 +34,7 @@ class Mesh {
         /*  Functions  */
         Mesh(vector<Vertex> vertices, vector<unsigned int> indices, vector<Texture> textures);
         void Draw(Shader, GLuint = GL_TRIANGLES);
+        void BindTextures(Shader shader);
     private:
         /*  Render data  */
         unsigned int VBO, EBO;

@@ -70,10 +70,10 @@ void main()
      vec3 normal = normalize(Normal);
      result += CalcProjLight(projectLight, normal, viewDir);
      result += CalcDirLight(dirLight, normal, viewDir);
-     for(int i = 0; i < NR_POINT_LIGHTS; i++){
-        result += CalcPointLight(pointLight[i], normal, viewDir);
-     }
-     vec3 spec = vec3(texture(material.texture_diffuse1, TexCoords));
+//     for(int i = 0; i < NR_POINT_LIGHTS; i++){
+//        result += CalcPointLight(pointLight[i], normal, viewDir);
+//     }
+     vec3 spec = vec3(texture(material.texture_specular1, TexCoords));
      vec3 R = refract(viewDir, normalize(Normal), ratio);
      vec3 cubMapColor = texture(cubemap, R).rgb;
      color = vec4(result, 1);
@@ -106,7 +106,8 @@ vec3 CalcProjLight(ProjectLight light, vec3 normal, vec3 viewDir){
      diffuseColor  *= attenuation;
      specular *= attenuation;
 
-     return ambient + (diffuseColor + specular) * intensity;
+    // return ambient + (diffuseColor + specular) * intensity;
+    return ambient + (diffuseColor ) * intensity;
 }
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir){
@@ -122,7 +123,8 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir){
      vec3 diffuseColor = light.diffuse * (diffAngle * vec3(texture(material.texture_diffuse1, TexCoords)));
      vec3 specular = light.specular * (spec *  vec3(texture(material.texture_specular1, TexCoords)));
 
-     return (ambient + diffuseColor + specular);
+     //return (ambient + diffuseColor + specular);
+     return (  ambient + diffuseColor);
 }
 
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 viewDir){

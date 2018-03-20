@@ -40,6 +40,13 @@ void Mesh::setupMesh()
 
 void Mesh::Draw(Shader shader, GLuint drawType)
 {
+    this->BindTextures(shader);
+    glBindVertexArray(VAO);
+    glDrawElements(drawType, indices.size(), GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+}
+
+void Mesh::BindTextures(Shader shader){
     unsigned int diffuseNr = 1;
     unsigned int specularNr = 1;
     for(unsigned int i = 0; i < textures.size(); i++)
@@ -58,9 +65,5 @@ void Mesh::Draw(Shader shader, GLuint drawType)
         glBindTexture(GL_TEXTURE_2D, textures[i].id);
     }
     glActiveTexture(GL_TEXTURE0);
-
-    glBindVertexArray(VAO);
-    glDrawElements(drawType, indices.size(), GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
 }
 
