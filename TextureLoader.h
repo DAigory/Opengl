@@ -5,7 +5,7 @@ using namespace std;
 
 class TextureLoader{
 public:
-    static GLuint Load(const char *path, const string &directory){
+    static GLuint Load(const char *path, const string &directory, GLenum colorFormat = GL_RGB){
         string filename = string(path);
         filename = directory + '/' + filename;
         int width_img, height_img;
@@ -20,7 +20,7 @@ public:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width_img, height_img, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+        glTexImage2D(GL_TEXTURE_2D, 0, colorFormat, width_img, height_img, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
         glGenerateMipmap(GL_TEXTURE_2D);
         SOIL_free_image_data(image);
         glBindTexture(GL_TEXTURE_2D, 0);

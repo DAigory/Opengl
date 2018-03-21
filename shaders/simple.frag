@@ -34,7 +34,6 @@ struct PointLight {
 
 struct DirLight {
     vec4 direction;
-
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
@@ -62,6 +61,7 @@ vec3 CalcProjLight(ProjectLight light, vec3 normal, vec3 viewDir);
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 viewDir);
 
 float ratio = 1.00 / 5.42;
+float gamma = 2.2;
 
 void main()
 {
@@ -76,18 +76,20 @@ void main()
      vec3 spec = vec3(texture(material.texture_diffuse1, TexCoords));
      vec3 R = refract(viewDir, normalize(Normal), ratio);
      vec3 cubMapColor = texture(cubemap, R).rgb;
+
+     result = pow(result, vec3(1.0/gamma));
      color = vec4(result, 1);
 }
 
 vec3 CalcProjLight(ProjectLight light, vec3 normal, vec3 viewDir){
      vec3 lightPos = projectLight.position.xyz;
-     vec3 lightDir = normalize(lightPos - FragPos);
+     vec3 lightDir = normalize(FragPos - lightPos);
 
      float distance    = length(projectLight.position.xyz - FragPos);
      float attenuation = 1.0 / (1.0 + projectLight.linear * distance +
      projectLight.quadratic * (distance * distance));
 
-     float theta     = dot(lightDir, normalize(-projectLight.direction.xyz));
+     float theta     = dot(lightDir, normalize(projectLight.direction.xyz));
      float epsilon   = projectLight.cutOff - projectLight.outerCutOff;
      float intensity = clamp((theta - projectLight.outerCutOff) / epsilon, 0.0, 1.0);
 
@@ -96,25 +98,27 @@ vec3 CalcProjLight(ProjectLight light, vec3 normal, vec3 viewDir){
 
      vec3 norm = normalize(Normal);
 
-     float diffAngle = max(dot(norm, lightDir), 0.0);
+     float diffAngle = max(dot(norm, -lightDir), 0.0);
      vec3 diffuseColor = projectLight.diffuse * (diffAngle * vec3(texture(material.texture_diffuse1, TexCoords)));
 
-     vec3 reflectDir = reflect(-lightDir, norm);
-     float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-     vec3 specular = projectLight.specular * (spec *  vec3(texture(material.texture_specular1, TexCoords)));
+     vec3 halfwayDir = normalize(-lightDir + viewDir);
+   //  vec3 reflectDir = reflect(lightDir, norm);
+     float spec = pow(max(dot(norm, halfwayDir), 0.0), material.shininess);
+     vec3 specular = projectLight.specular * (spec );
 
      diffuseColor  *= attenuation;
      specular *= attenuation;
 
      return ambient + (diffuseColor + specular) * intensity;
+    //return vec3(specular );
 }
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir){
      vec3 lightDir = (View * light.direction).xyz;
 
-     float diffAngle = max(dot(normal, lightDir), 0.0);
+     float diffAngle = max(dot(normal, -lightDir), 0.0);
 
-     vec3 reflectDir = normalize(reflect(-lightDir, normal));
+     vec3 reflectDir = normalize(reflect(lightDir, normal));
 
      float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
 
@@ -123,6 +127,7 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir){
      vec3 specular = light.specular * (spec *  vec3(texture(material.texture_specular1, TexCoords)));
 
      return (ambient + diffuseColor + specular);
+     //return vec3(specular);
 }
 
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 viewDir){

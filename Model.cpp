@@ -97,7 +97,7 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene)
     return Mesh(vertices, indices, textures);
 }
 
-vector<Texture> Model::loadMaterialTextures(aiMaterial *mat, aiTextureType type, string typeName)
+vector<Texture> Model::loadMaterialTextures(aiMaterial *mat, aiTextureType type, string typeName, GLenum imageFormat)
 {
    vector<Texture> textures;
        for(unsigned int i = 0; i < mat->GetTextureCount(type); i++)
@@ -117,7 +117,7 @@ vector<Texture> Model::loadMaterialTextures(aiMaterial *mat, aiTextureType type,
            if(!skip)
            {   // если текстура не была загружена – сделаем это
                Texture texture;
-               texture.id = TextureLoader::Load(str.C_Str(), directory);
+               texture.id = TextureLoader::Load(str.C_Str(), directory, imageFormat);
                texture.type = typeName;
                texture.path = str;
                textures.push_back(texture);
