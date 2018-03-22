@@ -44,6 +44,7 @@ void Shader::LinkProgram(){
 }
 
 GLuint Shader::MakeShader(std::string body, GLenum shaderType, const GLchar* path){
+        this->Path = path;
         GLuint shader;
         GLint success;
         GLchar infoLog[512];
@@ -98,11 +99,19 @@ void Shader::SetValue(const GLchar* name, glm::mat3 value){
 }
 
 GLuint Shader::GetUniformId(const GLchar* name){
-    return glGetUniformLocation(this->GetId(), name);
+    GLuint uniformId = glGetUniformLocation(this->GetId(), name);
+    if(uniformId > 200){
+         //std::cout << "no found uniform: " << name << "shader: "<< this->Path <<std::endl;
+    }
+    return uniformId;
 }
 
 GLuint Shader::GetUniformBlockId(const GLchar* name){
-    return glGetUniformBlockIndex(this->GetId(), name);
+    GLuint uniformBlockId = glGetUniformBlockIndex(this->GetId(), name);
+    if(uniformBlockId > 200){
+         std::cout << "no foun uniform block id" << name << "shader: "<< this->Path <<std::endl;
+    }
+    return uniformBlockId;
 }
 
 void Shader::BindUniformBlock(const GLchar* uniformBlockName, int pointBind){

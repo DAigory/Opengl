@@ -73,7 +73,7 @@ int main (int argc, char *argv[])
 
     glViewport(0, 0, width, height);
 
-    Camera camera = Camera(glm::vec3(0, 0, 4));
+    Camera camera = Camera(glm::vec3(0, -1, 6));
     controller = new Controller(&camera, width, height);
 
     glfwSetKeyCallback(window, key_callback);
@@ -108,10 +108,13 @@ int main (int argc, char *argv[])
     Shader shaderLamp = Shader("shaders/simple.vert", "shaders/lamp.frag");
     Shader shaderNormal = Shader("shaders/normals/normal.vert", "shaders/normals/constColor.frag", "shaders/normals/normal.geom");
     Shader shaderCubMap = Shader("shaders/skybox.vert", "shaders/skybox.frag");
+    Shader depthShader = Shader("shaders/depth/lightView.vert", "shaders/depth/empty.frag");
+
 
     Model soldierModel("assets/soldier/nanosuit.obj");
     Model cubeModel("assets/primitives/cub.obj");
     Model planeModel("assets/primitives/plane.obj");
+    Model quadModel("assets/primitives/quad.obj");
 
     shaderSimple.BindUniformBlock("Matrices", 0);
     shaderCubMap.BindUniformBlock("Matrices", 0);
@@ -129,6 +132,46 @@ int main (int argc, char *argv[])
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(proj));
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
+    //frame buffer and depth buffer
+    unsigned int depthMapFBO;
+    glGenFramebuffers(1, &depthMapFBO);
+
+    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+
+    unsigned int depthMap;
+    glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+                 SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glDrawBuffer(GL_NONE); //no calculate color in fragment
+    glReadBuffer(GL_NONE); //no calculate color in fragment
+    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE){
+        std::cout << "ok frame depth buffer " << std::endl;
+    } else{
+        std::cout << "incorrect frame depth buffer " << std::endl;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    float near_plane = 0.0f, far_plane = 7.5f;
+    glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+
+    glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f),
+                                      glm::vec3( 0.0f, 0.0f,  0.0f),
+                                      glm::vec3( 0.0f, 1.0f,  0.0f));
+
+    glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+
+
+    Shader screenShader = Shader("shaders/DrawToQuad/noMatrix.vert", "shaders/DrawToQuad/texture.frag");
+
+    GLuint textTest = TextureLoader::Load("boxWood.png", "assets/primitives/");
 
     while(!glfwWindowShouldClose(window))
     {
@@ -146,112 +189,135 @@ int main (int argc, char *argv[])
         //cubes
         GLfloat timeValue = glfwGetTime();
 
-        shaderSimple.Use();
-        shaderSimple.SetValue("dirLight.ambient", 0.03f, 0.03f, 0.03f);
-        shaderSimple.SetValue("dirLight.diffuse", 0.1f, 0.1f, 0.1f);
-        shaderSimple.SetValue("dirLight.specular", 0.1f, 0.1f, 0.1f);
-        shaderSimple.SetValue("dirLight.direction", 0.0f, -1.0f, 0.0f, 0.0f);
-
-       shaderSimple.SetValue("projectLight.ambient", 0.03f, 0.03f, 0.03f);
-       shaderSimple.SetValue("projectLight.diffuse", 1.0f, 1.0f, 1.0f);
-       shaderSimple.SetValue("projectLight.specular", 1.0f, 1.0f, 1.0f);
-       shaderSimple.SetValue("projectLight.position", view * glm::vec4(0,2,-7,1));
-       shaderSimple.SetValue("projectLight.direction", view * glm::vec4(0,-1,-1.5,0));
-       shaderSimple.SetValue("projectLight.cutOff",  glm::cos(glm::radians(cutOff)));
-       shaderSimple.SetValue("projectLight.outerCutOff",  glm::cos(glm::radians(outerCutOff)));
-       shaderSimple.SetValue("projectLight.linear",    0.09f);
-       shaderSimple.SetValue("projectLight.quadratic", 0.032f);
-
         glm::mat4 modelPrimitive;
-        glm::vec3 pos = glm::vec3(0, -3.0, -7.0);
+        glm::vec3 pos = glm::vec3(0, 0.0, 0.0);
         modelPrimitive = glm::translate(modelPrimitive, pos);
-        shaderSimple.SetValue("model", modelPrimitive);
-        planeModel.Draw(shaderSimple);
 
-        shaderSimple.Use();
+        glm::mat4 modelSoldier;
+        glm::vec3 newPosSoldier = shiftPos + glm::vec3(0, 0.0, 0.0);
+        modelSoldier = glm::translate(modelSoldier, newPosSoldier);
+        modelSoldier = glm::scale(modelSoldier, glm::vec3(0.2f));
 
-        shaderSimple.SetValue("material.shininess", 32.0f);
-       // std::cout << "x: "<< a.x << "y: " << a.y << "z:  "<< a.z << std::endl;
+        screenShader.Use();
+        depthShader.SetValue("lightSpaceMatrix", lightSpaceMatrix);
 
-        shaderSimple.SetValue("projectLight.ambient", 0.03f, 0.03f, 0.03f);
-        shaderSimple.SetValue("projectLight.diffuse", 1.0f, 1.0f, 1.0f);
-        shaderSimple.SetValue("projectLight.specular", 1.0f, 1.0f, 1.0f);
-        shaderSimple.SetValue("projectLight.position", glm::vec4(0,0,0,1));
-        shaderSimple.SetValue("projectLight.direction", view * camera.GetFront4());
-        shaderSimple.SetValue("projectLight.cutOff",  glm::cos(glm::radians(cutOff)));
-        shaderSimple.SetValue("projectLight.outerCutOff",  glm::cos(glm::radians(outerCutOff)));
-        shaderSimple.SetValue("projectLight.linear",    0.09f);
-        shaderSimple.SetValue("projectLight.quadratic", 0.032f);
+        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+        glClear(GL_DEPTH_BUFFER_BIT);
 
-        shaderSimple.SetValue("dirLight.ambient", 0.03f, 0.03f, 0.03f);
-        shaderSimple.SetValue("dirLight.diffuse", 0.5f, 0.5f, 0.5f);
-        shaderSimple.SetValue("dirLight.specular", 1.0f, 1.0f, 1.0f);
-        shaderSimple.SetValue("dirLight.direction", direction);
+        depthShader.SetValue("model", modelPrimitive);
+        planeModel.Draw(depthShader);
+        depthShader.SetValue("model", modelSoldier);
+        soldierModel.Draw(shaderSimple);
 
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, width, height);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        screenShader.Use();
+        glDisable(GL_DEPTH_TEST);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+        quadModel.Draw(screenShader);
 
-
-        shaderSimple.SetValue("cubemap",0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cubMapTexture);
-
-         glm::mat4 model;
-         glm::vec3 newPos = shiftPos + glm::vec3(0, -1.5, 0.0);
-         model = glm::translate(model, newPos);
-         model = glm::scale(model, glm::vec3(0.2f));
-         GLfloat angle = timeValue * glm::radians(5.0f);
-         // model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
-         glm::mat3 normalMatrix = glm::transpose(glm::inverse(model));
-         shaderSimple.SetValue("model", model);
-         shaderSimple.SetValue("normalMatrix", normalMatrix);
-         shaderSimple.SetValue("shiftMix", shiftMix);
-         soldierModel.Draw(shaderSimple);
-
-         //lamp data to shader
-         int count = sizeof(pointLightPositions) / sizeof(*pointLightPositions);
-
-         angle = glm::radians(1.1f) * deltaTime * 30;
-         glm::mat4 rotate;
-         rotate = glm::rotate(rotate, angle, glm::vec3(0.0f, 1.0f, 0.0f));
-
-         shaderSimple.SetValue("time", float(glfwGetTime()));
-
-         for(int i =0;i<count;i++){
-             glm::vec3 newPos =  pointLightPositions[i]*rotate;
-             pointLightPositions[i] = glm::vec4(newPos.x, newPos.y,newPos.z, 1.0f);
-             glm::vec3 position3 = pointLightPositions[i];
-             glm::vec4 position = glm::vec4(position3.x, position3.y, position3.z, 1);
-             std::string pointLight = "pointLight[";
-             pointLight += std::to_string(i) + "].";
-             shaderSimple.SetValue((pointLight + "ambient").c_str(), 0.03f, 0.03f, 0.03f);
-             shaderSimple.SetValue((pointLight + "diffuse").c_str(), 0.5f, 0.5f, 0.5f);
-             shaderSimple.SetValue((pointLight + "specular").c_str(), 01.0f, 1.0f, 1.0f);
-             shaderSimple.SetValue((pointLight + "position").c_str(), view * position);
-             shaderSimple.SetValue((pointLight + "linear").c_str(),    0.09f);
-             shaderSimple.SetValue((pointLight + "quadratic").c_str(), 0.032f);
-         }
-
-         //lamp draw like cubes
-         shaderLamp.Use();
-         shaderLamp.SetValue("view", view);
-         shaderLamp.SetValue("projection", proj);
-
-         for(int i =0; i<count; i++){
-           glm::vec4 position = pointLightPositions[i];
-           glm::mat4 model = glm::mat4();
-           model = glm::translate(model, glm::vec3(position));
-           model = glm::scale(model, glm::vec3(0.2f));
-           shaderLamp.SetValue("model", model);
-           cubeModel.Draw(shaderLamp);
-         }
-
-         //skybox
-         glDepthFunc(GL_LEQUAL);
-         shaderCubMap.Use();
-         glm::mat4 viewOnlyRotate = glm::mat4(glm::mat3(view));
-         shaderCubMap.SetValue("viewOnlyRotate", viewOnlyRotate);
-         shaderCubMap.SetValue("skybox", 0);
-         glBindTexture(GL_TEXTURE_CUBE_MAP, cubMapTexture);
-         //cubeModel.Draw(shaderCubMap);
-         glDepthFunc(GL_LESS);
+//        shaderSimple.Use();
+//        shaderSimple.SetValue("dirLight.ambient", 0.03f, 0.03f, 0.03f);
+//        shaderSimple.SetValue("dirLight.diffuse", 0.1f, 0.1f, 0.1f);
+//        shaderSimple.SetValue("dirLight.specular", 0.1f, 0.1f, 0.1f);
+//        shaderSimple.SetValue("dirLight.direction", 0.0f, -1.0f, 0.0f, 0.0f);
+//
+//       shaderSimple.SetValue("projectLight.ambient", 0.03f, 0.03f, 0.03f);
+//       shaderSimple.SetValue("projectLight.diffuse", 1.0f, 1.0f, 1.0f);
+//       shaderSimple.SetValue("projectLight.specular", 1.0f, 1.0f, 1.0f);
+//       shaderSimple.SetValue("projectLight.position", view * glm::vec4(0,2,-7,1));
+//       shaderSimple.SetValue("projectLight.direction", view * glm::vec4(0,-1,-1.5,0));
+//       shaderSimple.SetValue("projectLight.cutOff",  glm::cos(glm::radians(cutOff)));
+//       shaderSimple.SetValue("projectLight.outerCutOff",  glm::cos(glm::radians(outerCutOff)));
+//       shaderSimple.SetValue("projectLight.linear",    0.09f);
+//       shaderSimple.SetValue("projectLight.quadratic", 0.032f);
+//
+//        shaderSimple.SetValue("model", modelPrimitive);
+//        planeModel.Draw(shaderSimple);
+//
+//        shaderSimple.Use();
+//
+//        shaderSimple.SetValue("material.shininess", 32.0f);
+//       // std::cout << "x: "<< a.x << "y: " << a.y << "z:  "<< a.z << std::endl;
+//
+//        shaderSimple.SetValue("projectLight.ambient", 0.03f, 0.03f, 0.03f);
+//        shaderSimple.SetValue("projectLight.diffuse", 1.0f, 1.0f, 1.0f);
+//        shaderSimple.SetValue("projectLight.specular", 1.0f, 1.0f, 1.0f);
+//        shaderSimple.SetValue("projectLight.position", glm::vec4(0,0,0,1));
+//        shaderSimple.SetValue("projectLight.direction", view * camera.GetFront4());
+//        shaderSimple.SetValue("projectLight.cutOff",  glm::cos(glm::radians(cutOff)));
+//        shaderSimple.SetValue("projectLight.outerCutOff",  glm::cos(glm::radians(outerCutOff)));
+//        shaderSimple.SetValue("projectLight.linear",    0.09f);
+//        shaderSimple.SetValue("projectLight.quadratic", 0.032f);
+//
+//        shaderSimple.SetValue("dirLight.ambient", 0.03f, 0.03f, 0.03f);
+//        shaderSimple.SetValue("dirLight.diffuse", 0.5f, 0.5f, 0.5f);
+//        shaderSimple.SetValue("dirLight.specular", 1.0f, 1.0f, 1.0f);
+//        shaderSimple.SetValue("dirLight.direction", direction);
+//
+//
+//
+//        shaderSimple.SetValue("cubemap",0);
+//        glBindTexture(GL_TEXTURE_CUBE_MAP, cubMapTexture);
+//
+//         GLfloat angle = timeValue * glm::radians(5.0f);
+//         // model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
+//         glm::mat3 normalMatrix = glm::transpose(glm::inverse(modelSoldier));
+//         shaderSimple.SetValue("model", modelSoldier);
+//         shaderSimple.SetValue("normalMatrix", normalMatrix);
+//         shaderSimple.SetValue("shiftMix", shiftMix);
+//         soldierModel.Draw(shaderSimple);
+//
+//         //lamp data to shader
+//         int count = sizeof(pointLightPositions) / sizeof(*pointLightPositions);
+//
+//         angle = glm::radians(1.1f) * deltaTime * 30;
+//         glm::mat4 rotate;
+//         rotate = glm::rotate(rotate, angle, glm::vec3(0.0f, 1.0f, 0.0f));
+//
+//         shaderSimple.SetValue("time", float(glfwGetTime()));
+//
+//         for(int i =0;i<count;i++){
+//             glm::vec3 newPos =  pointLightPositions[i]*rotate;
+//             pointLightPositions[i] = glm::vec4(newPos.x, newPos.y,newPos.z, 1.0f);
+//             glm::vec3 position3 = pointLightPositions[i];
+//             glm::vec4 position = glm::vec4(position3.x, position3.y, position3.z, 1);
+//             std::string pointLight = "pointLight[";
+//             pointLight += std::to_string(i) + "].";
+//             shaderSimple.SetValue((pointLight + "ambient").c_str(), 0.03f, 0.03f, 0.03f);
+//             shaderSimple.SetValue((pointLight + "diffuse").c_str(), 0.5f, 0.5f, 0.5f);
+//             shaderSimple.SetValue((pointLight + "specular").c_str(), 01.0f, 1.0f, 1.0f);
+//             shaderSimple.SetValue((pointLight + "position").c_str(), view * position);
+//             shaderSimple.SetValue((pointLight + "linear").c_str(),    0.09f);
+//             shaderSimple.SetValue((pointLight + "quadratic").c_str(), 0.032f);
+//         }
+//
+//         //lamp draw like cubes
+//         shaderLamp.Use();
+//         shaderLamp.SetValue("view", view);
+//         shaderLamp.SetValue("projection", proj);
+//
+//         for(int i =0; i<count; i++){
+//           glm::vec4 position = pointLightPositions[i];
+//           glm::mat4 model = glm::mat4();
+//           model = glm::translate(model, glm::vec3(position));
+//           model = glm::scale(model, glm::vec3(0.2f));
+//           shaderLamp.SetValue("model", model);
+//           cubeModel.Draw(shaderLamp);
+//         }
+//
+//         //skybox
+//         glDepthFunc(GL_LEQUAL);
+//         shaderCubMap.Use();
+//         glm::mat4 viewOnlyRotate = glm::mat4(glm::mat3(view));
+//         shaderCubMap.SetValue("viewOnlyRotate", viewOnlyRotate);
+//         shaderCubMap.SetValue("skybox", 0);
+//         glBindTexture(GL_TEXTURE_CUBE_MAP, cubMapTexture);
+//         //cubeModel.Draw(shaderCubMap);
+//         glDepthFunc(GL_LESS);
 
          glfwSwapBuffers(window);
          caclulate_delta_time();

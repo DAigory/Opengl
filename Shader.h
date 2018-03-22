@@ -12,6 +12,7 @@
 class Shader
 {
 public:
+    const GLchar* Path;
     Shader(const GLchar* vertexPath, const GLchar* fragmentPath);
     Shader(const GLchar* vertexPath, const GLchar* fragmentPath, const GLchar* geometrytPath);
     GLuint GetId();
@@ -25,12 +26,11 @@ public:
     void SetValue(const GLchar* name, float a, float b, float c, float d);
     void SetValue(const GLchar* name, glm::mat4 value);
     void SetValue(const GLchar* name, glm::mat3 value);
-
+    GLuint GetUniformId(const GLchar* name);
     void Use();
 private:
     GLuint Program;
     std::string  ReadFile(const GLchar* path);
     GLuint MakeShader(std::string body, GLenum shaderType, const GLchar* vertexPath);
-    GLuint GetUniformId(const GLchar* name);
     void LinkProgram();
 };
