@@ -73,7 +73,7 @@ int main (int argc, char *argv[])
 
     glViewport(0, 0, width, height);
 
-    Camera camera = Camera(glm::vec3(0, -1, 6));
+    Camera camera = Camera(glm::vec3(0, 0, 6));
     controller = new Controller(&camera, width, height);
 
     glfwSetKeyCallback(window, key_callback);
@@ -133,7 +133,7 @@ int main (int argc, char *argv[])
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
     //frame buffer and depth buffer
-   const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+   const unsigned int SHADOW_WIDTH = width, SHADOW_HEIGHT = height;
    unsigned int depthMapFBO;
    glGenFramebuffers(1, &depthMapFBO);
    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
@@ -141,7 +141,7 @@ int main (int argc, char *argv[])
    unsigned int depthMap;
    glGenTextures(1, &depthMap);
    glBindTexture(GL_TEXTURE_2D, depthMap);
-   glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
+   glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -151,12 +151,6 @@ int main (int argc, char *argv[])
    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
    glDrawBuffer(GL_NONE);
    glReadBuffer(GL_NONE);
-//    unsigned int rbo;
-//       glGenRenderbuffers(1, &rbo);
-//       glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-//       glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height); // use a single renderbuffer object for both a depth AND stencil buffer.
-//       glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
-
 
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE){
@@ -166,10 +160,17 @@ int main (int argc, char *argv[])
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    float near_plane = 1.0f, far_plane = 7.5f;
+    float near_plane = 1.0f, far_plane = 10.5f;
     glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
 
+    glm::vec3 lightPosition = glm::vec3(1.5, 1.2, 1);
+    glm::vec4 directionLight = glm::vec4(-lightPosition.x, -lightPosition.y, -lightPosition.z, 0);
+    directionLight = glm::normalize(directionLight);
+    glm::mat4 lightView = glm::lookAt(lightPosition,
+                                          glm::vec3( 0,0,0),
+                                          glm::vec3( 0,1,0));
 
+    glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
 
     Shader screenShader = Shader("shaders/DrawToQuad/noMatrix.vert", "shaders/DrawToQuad/texture.frag");
@@ -189,7 +190,7 @@ int main (int argc, char *argv[])
         glBindBuffer(GL_UNIFORM_BUFFER, uboMatrices);
         glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view));
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
-        //cubes
+
         GLfloat timeValue = glfwGetTime();
 
         glm::mat4 modelPrimitive;
@@ -201,32 +202,38 @@ int main (int argc, char *argv[])
         modelSoldier = glm::translate(modelSoldier, newPosSoldier);
         modelSoldier = glm::scale(modelSoldier, glm::vec3(0.2f));
 
+        //draw to depth buffer
         depthShader.Use();
-        glm::mat4 lightView = glm::lookAt(glm::vec3(camera.Position),
-                                              glm::vec3( camera.Position + camera.Front),
-                                              glm::vec3( camera.Up));
-
-        glm::mat4 lightSpaceMatrix = lightProjection * lightView;
         depthShader.SetValue("lightSpaceMatrix", lightSpaceMatrix);
 
         glEnable(GL_DEPTH_TEST);
 
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-       // glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear( GL_DEPTH_BUFFER_BIT);
+
+        glClear(GL_DEPTH_BUFFER_BIT);
+        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
 
         depthShader.SetValue("model", modelPrimitive);
         planeModel.Draw(depthShader);
         depthShader.SetValue("model", modelSoldier);
         soldierModel.Draw(depthShader);
 
+        //draw to screen buffer
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, width, height);
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-//
-//        shaderSimple.Use();
-//        shaderSimple.SetValue("dirLight.ambient", 0.03f, 0.03f, 0.03f);
-//        shaderSimple.SetValue("dirLight.diffuse", 0.1f, 0.1f, 0.1f);
-//        shaderSimple.SetValue("dirLight.specular", 0.1f, 0.1f, 0.1f);
-//        shaderSimple.SetValue("dirLight.direction", 0.0f, -1.0f, 0.0f, 0.0f);
+        shaderSimple.Use();
+        glActiveTexture(GL_TEXTURE0+2);
+        shaderSimple.SetValue("shadowMap",2);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+        shaderSimple.SetValue("lightSpaceMatrix", lightSpaceMatrix);
+        shaderSimple.SetValue("dirLight.ambient", 0.03f, 0.03f, 0.03f);
+        shaderSimple.SetValue("dirLight.diffuse", 0.3f, 0.3f, 0.3f);
+        shaderSimple.SetValue("dirLight.specular", 0.1f, 0.1f, 0.1f);
+        shaderSimple.SetValue("dirLight.direction", directionLight);
+
 //
 //       shaderSimple.SetValue("projectLight.ambient", 0.03f, 0.03f, 0.03f);
 //       shaderSimple.SetValue("projectLight.diffuse", 1.0f, 1.0f, 1.0f);
@@ -238,12 +245,12 @@ int main (int argc, char *argv[])
 //       shaderSimple.SetValue("projectLight.linear",    0.09f);
 //       shaderSimple.SetValue("projectLight.quadratic", 0.032f);
 //
-//        shaderSimple.SetValue("model", modelPrimitive);
-//        planeModel.Draw(shaderSimple);
-//
-//        shaderSimple.Use();
-//
-//        shaderSimple.SetValue("material.shininess", 32.0f);
+
+         shaderSimple.SetValue("model", modelPrimitive);
+         planeModel.Draw(shaderSimple);
+
+         shaderSimple.SetValue("material.shininess", 32.0f);
+
 //       // std::cout << "x: "<< a.x << "y: " << a.y << "z:  "<< a.z << std::endl;
 //
 //        shaderSimple.SetValue("projectLight.ambient", 0.03f, 0.03f, 0.03f);
@@ -255,22 +262,17 @@ int main (int argc, char *argv[])
 //        shaderSimple.SetValue("projectLight.outerCutOff",  glm::cos(glm::radians(outerCutOff)));
 //        shaderSimple.SetValue("projectLight.linear",    0.09f);
 //        shaderSimple.SetValue("projectLight.quadratic", 0.032f);
+
+       // shaderSimple.SetValue("cubemap",0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubMapTexture);
 //
-//        shaderSimple.SetValue("dirLight.ambient", 0.03f, 0.03f, 0.03f);
-//        shaderSimple.SetValue("dirLight.diffuse", 0.5f, 0.5f, 0.5f);
-//        shaderSimple.SetValue("dirLight.specular", 1.0f, 1.0f, 1.0f);
-//        shaderSimple.SetValue("dirLight.direction", direction);
-//
-//        shaderSimple.SetValue("cubemap",0);
-//        glBindTexture(GL_TEXTURE_CUBE_MAP, cubMapTexture);
-//
-//         GLfloat angle = timeValue * glm::radians(5.0f);
-//         // model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
-//         glm::mat3 normalMatrix = glm::transpose(glm::inverse(modelSoldier));
-//         shaderSimple.SetValue("model", modelSoldier);
-//         shaderSimple.SetValue("normalMatrix", normalMatrix);
-//         shaderSimple.SetValue("shiftMix", shiftMix);
-//         soldierModel.Draw(shaderSimple);
+         GLfloat angle = timeValue * glm::radians(5.0f);
+         // model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
+         glm::mat3 normalMatrix = glm::transpose(glm::inverse(modelSoldier));
+         shaderSimple.SetValue("model", modelSoldier);
+         shaderSimple.SetValue("normalMatrix", normalMatrix);
+         shaderSimple.SetValue("shiftMix", shiftMix);
+         soldierModel.Draw(shaderSimple);
 //
 //         //lamp data to shader
 //         int count = sizeof(pointLightPositions) / sizeof(*pointLightPositions);
@@ -320,15 +322,15 @@ int main (int argc, char *argv[])
 //         //cubeModel.Draw(shaderCubMap);
 //         glDepthFunc(GL_LESS);
 
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glViewport(0, 0, width, height);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        screenShader.Use();
-        glDisable(GL_DEPTH_TEST);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, depthMap);
-        quadModel.Draw(screenShader);
+//render texture to screen quad
+//        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+//        glViewport(0, 0, width, height);
+//        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+//        screenShader.Use();
+//        glDisable(GL_DEPTH_TEST);
+//        glActiveTexture(GL_TEXTURE0);
+//        glBindTexture(GL_TEXTURE_2D, depthMap);
+//        quadModel.Draw(screenShader);
 
          glfwSwapBuffers(window);
          caclulate_delta_time();

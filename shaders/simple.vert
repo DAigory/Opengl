@@ -8,21 +8,28 @@ layout (std140) uniform Matrices
 
 uniform mat4 model;
 uniform mat3 normalMatrix;
+uniform mat4 lightSpaceMatrix;
 
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 normal;
 layout (location = 2) in vec2 texCoords;
 
-out vec3 Normal;
-out vec3 FragPos;
-out mat4 View;
-out vec2 TexCoords;
+out VS_OUT {
+    vec3 FragPos;
+    vec3 Normal;
+    vec3 NormalWorld;
+    vec2 TexCoords;
+    mat4 View;
+    vec4 FragPosLightSpace;
+} vs_out;
 
 void main()
 {
     gl_Position = projection * view * model * vec4(position, 1.0);
-    FragPos = (view * model * vec4(position, 1.0)).xyz;
-    Normal = (view * vec4(normalMatrix * normal, 0)).xyz;
-    View = view;
-    TexCoords = texCoords;
+    vs_out.FragPos = (view * model * vec4(position, 1.0)).xyz;
+    vs_out.NormalWorld = vec4(normalMatrix * normal, 0).xyz;
+    vs_out.Normal = (view * vec4(vs_out.NormalWorld, 0)).xyz;
+    vs_out.View = view;
+    vs_out.TexCoords = texCoords;
+    vs_out.FragPosLightSpace = lightSpaceMatrix * model * vec4(position, 1.0);
 }

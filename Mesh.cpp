@@ -42,9 +42,11 @@ void Mesh::Draw(Shader shader, GLuint drawType)
 {
     unsigned int diffuseNr = 1;
     unsigned int specularNr = 1;
+    // std::cout << textures.size() <<" tex: "<<std::endl;
     for(unsigned int i = 0; i < textures.size(); i++)
     {
         glActiveTexture(GL_TEXTURE0 + i);
+
         stringstream ss;
         string number;
         string name = textures[i].type;
