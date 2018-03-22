@@ -141,22 +141,23 @@ int main (int argc, char *argv[])
    unsigned int depthMap;
    glGenTextures(1, &depthMap);
    glBindTexture(GL_TEXTURE_2D, depthMap);
-   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+   glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
    // attach depth texture as FBO's depth buffer
 
-   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, depthMap, 0);
-   //glDrawBuffer(GL_NONE);
-   //glReadBuffer(GL_NONE);
-    unsigned int rbo;
-       glGenRenderbuffers(1, &rbo);
-       glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-       glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height); // use a single renderbuffer object for both a depth AND stencil buffer.
-       glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
-   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+   glDrawBuffer(GL_NONE);
+   glReadBuffer(GL_NONE);
+//    unsigned int rbo;
+//       glGenRenderbuffers(1, &rbo);
+//       glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+//       glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height); // use a single renderbuffer object for both a depth AND stencil buffer.
+//       glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
+
+
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE){
         std::cout << "ok frame depth buffer " << std::endl;
@@ -165,14 +166,10 @@ int main (int argc, char *argv[])
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    float near_plane = 0.0f, far_plane = 7.5f;
+    float near_plane = 1.0f, far_plane = 7.5f;
     glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
 
-    glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f),
-                                      glm::vec3( 0.0f, 0.0f,  0.0f),
-                                      glm::vec3( 0.0f, 1.0f,  0.0f));
 
-    glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
 
     Shader screenShader = Shader("shaders/DrawToQuad/noMatrix.vert", "shaders/DrawToQuad/texture.frag");
@@ -196,85 +193,84 @@ int main (int argc, char *argv[])
         GLfloat timeValue = glfwGetTime();
 
         glm::mat4 modelPrimitive;
-        glm::vec3 pos = glm::vec3(2.0f, 0.0f, 1.0);
+        glm::vec3 pos = glm::vec3(2.0f, -2.0f, 1.0);
         modelPrimitive = glm::translate(modelPrimitive, pos);
 
         glm::mat4 modelSoldier;
-        glm::vec3 newPosSoldier = shiftPos + glm::vec3(-1.0f, 0.0f, 2.0);
+        glm::vec3 newPosSoldier = shiftPos + glm::vec3(-1.0f, -2.0f, 2.0);
         modelSoldier = glm::translate(modelSoldier, newPosSoldier);
         modelSoldier = glm::scale(modelSoldier, glm::vec3(0.2f));
 
-//        shaderSimple.Use();
-//              shaderSimple.SetValue("dirLight.ambient", 0.03f, 0.03f, 0.03f);
-//              shaderSimple.SetValue("dirLight.diffuse", 0.1f, 0.1f, 0.1f);
-//              shaderSimple.SetValue("dirLight.specular", 0.1f, 0.1f, 0.1f);
-//              shaderSimple.SetValue("dirLight.direction", 0.0f, -1.0f, 0.0f, 0.0f);
-//        depthShader.SetValue("lightSpaceMatrix", lightSpaceMatrix);
+        depthShader.Use();
+        glm::mat4 lightView = glm::lookAt(glm::vec3(camera.Position),
+                                              glm::vec3( camera.Position + camera.Front),
+                                              glm::vec3( camera.Up));
+
+        glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+        depthShader.SetValue("lightSpaceMatrix", lightSpaceMatrix);
 
         glEnable(GL_DEPTH_TEST);
-      //  glViewport(0, 0, width, height);
-        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+       // glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear( GL_DEPTH_BUFFER_BIT);
+
+        depthShader.SetValue("model", modelPrimitive);
+        planeModel.Draw(depthShader);
+        depthShader.SetValue("model", modelSoldier);
+        soldierModel.Draw(depthShader);
+
+
+//
+//        shaderSimple.Use();
+//        shaderSimple.SetValue("dirLight.ambient", 0.03f, 0.03f, 0.03f);
+//        shaderSimple.SetValue("dirLight.diffuse", 0.1f, 0.1f, 0.1f);
+//        shaderSimple.SetValue("dirLight.specular", 0.1f, 0.1f, 0.1f);
+//        shaderSimple.SetValue("dirLight.direction", 0.0f, -1.0f, 0.0f, 0.0f);
+//
+//       shaderSimple.SetValue("projectLight.ambient", 0.03f, 0.03f, 0.03f);
+//       shaderSimple.SetValue("projectLight.diffuse", 1.0f, 1.0f, 1.0f);
+//       shaderSimple.SetValue("projectLight.specular", 1.0f, 1.0f, 1.0f);
+//       shaderSimple.SetValue("projectLight.position", view * glm::vec4(0,2,-7,1));
+//       shaderSimple.SetValue("projectLight.direction", view * glm::vec4(0,-1,-1.5,0));
+//       shaderSimple.SetValue("projectLight.cutOff",  glm::cos(glm::radians(cutOff)));
+//       shaderSimple.SetValue("projectLight.outerCutOff",  glm::cos(glm::radians(outerCutOff)));
+//       shaderSimple.SetValue("projectLight.linear",    0.09f);
+//       shaderSimple.SetValue("projectLight.quadratic", 0.032f);
+//
 //        shaderSimple.SetValue("model", modelPrimitive);
 //        planeModel.Draw(shaderSimple);
-//        shaderSimple.SetValue("model", modelSoldier);
-//        soldierModel.Draw(shaderSimple);
-
-
-
-        shaderSimple.Use();
-        shaderSimple.SetValue("dirLight.ambient", 0.03f, 0.03f, 0.03f);
-        shaderSimple.SetValue("dirLight.diffuse", 0.1f, 0.1f, 0.1f);
-        shaderSimple.SetValue("dirLight.specular", 0.1f, 0.1f, 0.1f);
-        shaderSimple.SetValue("dirLight.direction", 0.0f, -1.0f, 0.0f, 0.0f);
-
-       shaderSimple.SetValue("projectLight.ambient", 0.03f, 0.03f, 0.03f);
-       shaderSimple.SetValue("projectLight.diffuse", 1.0f, 1.0f, 1.0f);
-       shaderSimple.SetValue("projectLight.specular", 1.0f, 1.0f, 1.0f);
-       shaderSimple.SetValue("projectLight.position", view * glm::vec4(0,2,-7,1));
-       shaderSimple.SetValue("projectLight.direction", view * glm::vec4(0,-1,-1.5,0));
-       shaderSimple.SetValue("projectLight.cutOff",  glm::cos(glm::radians(cutOff)));
-       shaderSimple.SetValue("projectLight.outerCutOff",  glm::cos(glm::radians(outerCutOff)));
-       shaderSimple.SetValue("projectLight.linear",    0.09f);
-       shaderSimple.SetValue("projectLight.quadratic", 0.032f);
-
-        shaderSimple.SetValue("model", modelPrimitive);
-        planeModel.Draw(shaderSimple);
-
-        shaderSimple.Use();
-
-        shaderSimple.SetValue("material.shininess", 32.0f);
-       // std::cout << "x: "<< a.x << "y: " << a.y << "z:  "<< a.z << std::endl;
-
-        shaderSimple.SetValue("projectLight.ambient", 0.03f, 0.03f, 0.03f);
-        shaderSimple.SetValue("projectLight.diffuse", 1.0f, 1.0f, 1.0f);
-        shaderSimple.SetValue("projectLight.specular", 1.0f, 1.0f, 1.0f);
-        shaderSimple.SetValue("projectLight.position", glm::vec4(0,0,0,1));
-        shaderSimple.SetValue("projectLight.direction", view * camera.GetFront4());
-        shaderSimple.SetValue("projectLight.cutOff",  glm::cos(glm::radians(cutOff)));
-        shaderSimple.SetValue("projectLight.outerCutOff",  glm::cos(glm::radians(outerCutOff)));
-        shaderSimple.SetValue("projectLight.linear",    0.09f);
-        shaderSimple.SetValue("projectLight.quadratic", 0.032f);
-
-        shaderSimple.SetValue("dirLight.ambient", 0.03f, 0.03f, 0.03f);
-        shaderSimple.SetValue("dirLight.diffuse", 0.5f, 0.5f, 0.5f);
-        shaderSimple.SetValue("dirLight.specular", 1.0f, 1.0f, 1.0f);
-        shaderSimple.SetValue("dirLight.direction", direction);
-
-
-
-        shaderSimple.SetValue("cubemap",0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cubMapTexture);
-
-         GLfloat angle = timeValue * glm::radians(5.0f);
-         // model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
-         glm::mat3 normalMatrix = glm::transpose(glm::inverse(modelSoldier));
-         shaderSimple.SetValue("model", modelSoldier);
-         shaderSimple.SetValue("normalMatrix", normalMatrix);
-         shaderSimple.SetValue("shiftMix", shiftMix);
-         soldierModel.Draw(shaderSimple);
+//
+//        shaderSimple.Use();
+//
+//        shaderSimple.SetValue("material.shininess", 32.0f);
+//       // std::cout << "x: "<< a.x << "y: " << a.y << "z:  "<< a.z << std::endl;
+//
+//        shaderSimple.SetValue("projectLight.ambient", 0.03f, 0.03f, 0.03f);
+//        shaderSimple.SetValue("projectLight.diffuse", 1.0f, 1.0f, 1.0f);
+//        shaderSimple.SetValue("projectLight.specular", 1.0f, 1.0f, 1.0f);
+//        shaderSimple.SetValue("projectLight.position", glm::vec4(0,0,0,1));
+//        shaderSimple.SetValue("projectLight.direction", view * camera.GetFront4());
+//        shaderSimple.SetValue("projectLight.cutOff",  glm::cos(glm::radians(cutOff)));
+//        shaderSimple.SetValue("projectLight.outerCutOff",  glm::cos(glm::radians(outerCutOff)));
+//        shaderSimple.SetValue("projectLight.linear",    0.09f);
+//        shaderSimple.SetValue("projectLight.quadratic", 0.032f);
+//
+//        shaderSimple.SetValue("dirLight.ambient", 0.03f, 0.03f, 0.03f);
+//        shaderSimple.SetValue("dirLight.diffuse", 0.5f, 0.5f, 0.5f);
+//        shaderSimple.SetValue("dirLight.specular", 1.0f, 1.0f, 1.0f);
+//        shaderSimple.SetValue("dirLight.direction", direction);
+//
+//        shaderSimple.SetValue("cubemap",0);
+//        glBindTexture(GL_TEXTURE_CUBE_MAP, cubMapTexture);
+//
+//         GLfloat angle = timeValue * glm::radians(5.0f);
+//         // model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
+//         glm::mat3 normalMatrix = glm::transpose(glm::inverse(modelSoldier));
+//         shaderSimple.SetValue("model", modelSoldier);
+//         shaderSimple.SetValue("normalMatrix", normalMatrix);
+//         shaderSimple.SetValue("shiftMix", shiftMix);
+//         soldierModel.Draw(shaderSimple);
 //
 //         //lamp data to shader
 //         int count = sizeof(pointLightPositions) / sizeof(*pointLightPositions);
