@@ -86,7 +86,7 @@ int main (int argc, char *argv[])
 
     caclulate_delta_time();
 
-    glm::vec4 lightPos(0.0f,  0.8f, -1.5f, 1.0f);
+    //glm::vec4 lightPos(0.0f,  0.8f, -1.5f, 1.0f);
     glm::vec4 lightDir(1.0f, 0.0f, 0.0f, 0.0f);
     glm::vec4 direction(-1.0f, 0.0f, 0.0f, 0.0f);
 
@@ -134,14 +134,18 @@ int main (int argc, char *argv[])
 
     //frame buffer and depth buffer
    const unsigned int SHADOW_WIDTH = width, SHADOW_HEIGHT = height;
+
    unsigned int depthMapFBO;
    glGenFramebuffers(1, &depthMapFBO);
    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
    // create depth texture
-   unsigned int depthMap;
-   glGenTextures(1, &depthMap);
-   glBindTexture(GL_TEXTURE_2D, depthMap);
-   glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
+   unsigned int depthCubemap;
+   glGenTextures(1, &depthCubemap);
+   glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
+   for (unsigned int i = 0; i < 6; ++i)
+           glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT,
+                        SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -150,9 +154,9 @@ int main (int argc, char *argv[])
    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
    // attach depth texture as FBO's depth buffer
 
-   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
-   glDrawBuffer(GL_NONE);
-   glReadBuffer(GL_NONE);
+   glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubemap, 0);
+   glDrawBuffer(GL_NONE);//doesn't render to a color buffer
+   glReadBuffer(GL_NONE);//doesn't render to a color buffer
 
 
     if(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE){
@@ -162,17 +166,25 @@ int main (int argc, char *argv[])
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    float near_plane = 1.0f, far_plane = 10.5f;
-    glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
 
-    glm::vec3 lightPosition = glm::vec3(1.5, 1.2, 1);
-    glm::vec4 directionLight = glm::vec4(-lightPosition.x, -lightPosition.y, -lightPosition.z, 0);
-    directionLight = glm::normalize(directionLight);
-    glm::mat4 lightView = glm::lookAt(lightPosition,
-                                          glm::vec3( 0,0,0),
-                                          glm::vec3( 0,1,0));
+    glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), (float)width/(float)height, 0.1f, 100.0f);
 
-    glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+    glm::vec3 lightPos = glm::vec3(1.5, 1.2, 1);
+
+    std::vector<glm::mat4> shadowTransforms;
+    shadowTransforms.push_back(shadowProj *
+                     glm::lookAt(lightPos, lightPos + glm::vec3( 1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0)));
+    shadowTransforms.push_back(shadowProj *
+                     glm::lookAt(lightPos, lightPos + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0)));
+    shadowTransforms.push_back(shadowProj *
+                     glm::lookAt(lightPos, lightPos + glm::vec3( 0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)));
+    shadowTransforms.push_back(shadowProj *
+                     glm::lookAt(lightPos, lightPos + glm::vec3( 0.0,-1.0, 0.0), glm::vec3(0.0, 0.0,-1.0)));
+    shadowTransforms.push_back(shadowProj *
+                     glm::lookAt(lightPos, lightPos + glm::vec3( 0.0, 0.0, 1.0), glm::vec3(0.0,-1.0, 0.0)));
+    shadowTransforms.push_back(shadowProj *
+                     glm::lookAt(lightPos, lightPos + glm::vec3( 0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0)));
+
 
 
     Shader screenShader = Shader("shaders/DrawToQuad/noMatrix.vert", "shaders/DrawToQuad/texture.frag");
@@ -231,7 +243,7 @@ int main (int argc, char *argv[])
         shaderSimple.Use();
         glActiveTexture(GL_TEXTURE0+2);
         shaderSimple.SetValue("shadowMap",2);
-        glBindTexture(GL_TEXTURE_2D, depthMap);
+       // glBindTexture(GL_TEXTURE_2D, depthMap);
         shaderSimple.SetValue("lightSpaceMatrix", lightSpaceMatrix);
         shaderSimple.SetValue("dirLight.ambient", 0.03f, 0.03f, 0.03f);
         shaderSimple.SetValue("dirLight.diffuse", 0.3f, 0.3f, 0.3f);
