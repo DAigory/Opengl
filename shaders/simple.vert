@@ -17,19 +17,17 @@ layout (location = 2) in vec2 texCoords;
 out VS_OUT {
     vec3 FragPos;
     vec3 Normal;
-    vec3 NormalWorld;
+    vec3 FragPosWorld;
     vec2 TexCoords;
     mat4 View;
-    vec4 FragPosLightSpace;
 } vs_out;
 
 void main()
 {
     gl_Position = projection * view * model * vec4(position, 1.0);
     vs_out.FragPos = (view * model * vec4(position, 1.0)).xyz;
-    vs_out.NormalWorld = vec4(normalMatrix * normal, 0).xyz;
-    vs_out.Normal = (view * vec4(vs_out.NormalWorld, 0)).xyz;
+    vs_out.FragPosWorld = (model * vec4(position, 1.0)).xyz;
+    vs_out.Normal = (view * vec4(normalMatrix * normal, 0)).xyz;
     vs_out.View = view;
     vs_out.TexCoords = texCoords;
-    vs_out.FragPosLightSpace = lightSpaceMatrix * model * vec4(position, 1.0);
 }
