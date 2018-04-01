@@ -50,7 +50,7 @@ uniform float shiftMix;
 uniform float far_plane;
 
 uniform vec3 viewPos;
-uniform samplerCube cubemap;
+//uniform samplerCube cubemap;
 uniform samplerCube shadowMapCub; //depth cubmap
 
 
@@ -89,21 +89,21 @@ void main()
      vec3 result = vec3(0);
      vec3 viewDir = normalize(-vs_in.FragPos);
      vec3 normal = normalize(vs_in.Normal);
-     //result += CalcProjLight(projectLight, normal, viewDir, shadow);
-     result += CalcDirLight(dirLight, normal, viewDir, 1);
-//     for(int i = 0; i < NR_POINT_LIGHTS; i++){
-//        result += CalcPointLight(pointLight[i], normal, viewDir, shadow);
-//     }
+    // result += CalcProjLight(projectLight, normal, viewDir, shadow);
+     //result += CalcDirLight(dirLight, normal, viewDir, shadow);
+     for(int i = 0; i < NR_POINT_LIGHTS; i++){
+        result += CalcPointLight(pointLight[i], normal, viewDir, shadow);
+     }
      vec3 spec = vec3(texture(material.texture_diffuse1, vs_in.TexCoords));
      vec3 R = refract(viewDir, normalize(vs_in.Normal), ratio);
-     vec3 cubMapColor = texture(cubemap, R).rgb;
+     //vec3 cubMapColor = texture(cubemap, R).rgb;
 
       vec3 fragToLight = vs_in.FragPosWorld - pointLight[0].position.xyz;
       float closestDepth = texture(shadowMapCub, fragToLight).r;
 
      result = pow(result, vec3(1.0 / gamma));
-     result.x -= shadow;
-     color = vec4(vec3( (result.xyz).xyz),1);
+    // result.x -= shadow;
+       color = vec4(vec3(result),1);
 }
 
 vec3 CalcProjLight(ProjectLight light, vec3 normal, vec3 viewDir,float shadow){
@@ -151,7 +151,7 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, float shadow){
      vec3 diffuseColor = light.diffuse * (diffAngle * vec3(texture(material.texture_diffuse1, vs_in.TexCoords)));
      vec3 specular = light.specular * (spec *  vec3(texture(material.texture_specular1, vs_in.TexCoords)));
 
-     return (ambient + shadow *(diffuseColor + specular));
+     return (ambient + shadow * (diffuseColor + specular));
      //return vec3(specular);
 }
 
@@ -178,4 +178,5 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 viewDir, float shadow){
      specular *= attenuation;
 
      return ambient + shadow * (diffuseColor + specular);
+    return diffuseColor;
 }

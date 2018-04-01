@@ -31,6 +31,7 @@ glm::vec3 shiftPos;
 
 int main (int argc, char *argv[])
 {
+ std::cout << "1 " << std::endl;
     shiftPos = glm::vec3();
   //Инициализация GLFW
   	glfwInit();
@@ -44,12 +45,11 @@ int main (int argc, char *argv[])
   	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   	//Выключение возможности изменения размера окна
   	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-
   	glfwWindowHint(GLFW_SAMPLES, 4); //for msaa 4 data to pixel
+
   	glEnable(GL_MULTISAMPLE);
-
-
   	GLFWwindow* window = glfwCreateWindow(1920, 1080, "LearnOpenGL", nullptr, nullptr);
+
     if (window == nullptr)
     {
     	std::cout << "Failed to create GLFW window" << std::endl;
@@ -133,45 +133,32 @@ int main (int argc, char *argv[])
     glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(proj));
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-    //frame buffer and depth buffer
-   const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
 
-   unsigned int depthMapFBO;
-   glGenFramebuffers(1, &depthMapFBO);
-
-   // create depth texture
-   unsigned int depthCubemap;
-   glGenTextures(1, &depthCubemap);
-   glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
-   for (unsigned int i = 0; i < 6; ++i)
-   {
+   // configure depth map FBO
+       // -----------------------
+       const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+       unsigned int depthMapFBO;
+       glGenFramebuffers(1, &depthMapFBO);
+       // create depth cubemap texture
+       unsigned int depthCubemap;
+       glGenTextures(1, &depthCubemap);
+       glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
+       for (unsigned int i = 0; i < 6; ++i)
            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-   }
-
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-   float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-   glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-   // attach depth texture as FBO's depth buffer
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-
-   glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubemap, 0);
-   glDrawBuffer(GL_NONE);//doesn't render to a color buffer
-   glReadBuffer(GL_NONE);//doesn't render to a color buffer
-
-
-    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE){
-        std::cout << "ok frame depth buffer " << std::endl;
-    } else{
-        std::cout << "incorrect frame depth buffer " << std::endl;
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+       glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+       glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+       glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+       glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+       glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+       // attach depth texture as FBO's depth buffer
+       glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+       glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthCubemap, 0);
+       glDrawBuffer(GL_NONE);
+       glReadBuffer(GL_NONE);
+       glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     float far = 50.0f;
-    glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), (float)width/(float)height, 0.1f, far);
+    glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), (float)SHADOW_WIDTH/(float)SHADOW_HEIGHT, 0.1f, far);
 
     glm::vec3 lightPos = glm::vec3(1.5, 1.2, 1);
 
@@ -226,15 +213,18 @@ int main (int argc, char *argv[])
         modelCubMat = glm::scale(modelCubMat, glm::vec3(7));
 
         //draw to cub depth buffer
+        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
         glCullFace(GL_FRONT);
         depthShaderCub.Use();
 
         glEnable(GL_DEPTH_TEST);
 
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-
         glClear(GL_DEPTH_BUFFER_BIT);
-        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+        glDrawBuffer(GL_NONE);//doesn't render to a color buffer
+        glReadBuffer(GL_NONE);
+
+
 
          glm::vec3 lightPos = glm::vec3(1.5, 1.2, 1) + shiftPos;
 
@@ -263,23 +253,21 @@ int main (int argc, char *argv[])
         cubeModel.Draw(depthShaderCub);
         depthShaderCub.SetValue("model", modelCubMat);
         cubeModel.Draw(depthShaderCub);
-
+        glCullFace(GL_BACK);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         //draw to screen buffer
-                 glCullFace(GL_BACK);
-                 glBindFramebuffer(GL_FRAMEBUFFER, 0);
-                 glViewport(0, 0, width, height);
-                 glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-                 shaderSimple.Use();
-                 glActiveTexture(GL_TEXTURE0);
-                 shaderSimple.SetValue("shadowMapCub",0);
-                 glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
-                 glActiveTexture(GL_TEXTURE0+1);
-                 shaderSimple.SetValue("cubemap",1);
-                 glBindTexture(GL_TEXTURE_CUBE_MAP, cubMapTexture);
+                glViewport(0, 0, width, height);
+                glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+                shaderSimple.Use();
+                glActiveTexture(GL_TEXTURE3);
+                shaderSimple.SetValue("shadowMapCub",3);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
+                // glActiveTexture(GL_TEXTURE0+1);
+                // shaderSimple.SetValue("cubemap",1);
+               //  glBindTexture(GL_TEXTURE_CUBE_MAP, cubMapTexture);
                  shaderSimple.SetValue("far_plane", far);
-                 shaderSimple.SetValue("dirLight.ambient", 0.03f, 0.03f, 0.03f);
+                 shaderSimple.SetValue("dirLight.ambient", 0.13f, 0.13f, 0.13f);
                  shaderSimple.SetValue("dirLight.diffuse", 0.3f, 0.3f, 0.3f);
                  shaderSimple.SetValue("dirLight.specular", 0.1f, 0.1f, 0.1f);
                  shaderSimple.SetValue("dirLight.direction", 1,0,0,0);
@@ -300,7 +288,7 @@ int main (int argc, char *argv[])
              pointLight += std::to_string(0) + "].";
              shaderSimple.SetValue((pointLight + "ambient").c_str(), 0.03f, 0.03f, 0.03f);
              shaderSimple.SetValue((pointLight + "diffuse").c_str(), 0.5f, 0.5f, 0.5f);
-             shaderSimple.SetValue((pointLight + "specular").c_str(), 01.0f, 1.0f, 1.0f);
+             shaderSimple.SetValue((pointLight + "specular").c_str(), 0.1f, 0.1f, 0.1f);
              shaderSimple.SetValue((pointLight + "position").c_str(), glm::vec4(lightPos.x,lightPos.y,lightPos.z,1));
              shaderSimple.SetValue((pointLight + "linear").c_str(),    0.09f);
              shaderSimple.SetValue((pointLight + "quadratic").c_str(), 0.032f);
@@ -323,16 +311,17 @@ int main (int argc, char *argv[])
 //        shaderSimple.SetValue("projectLight.quadratic", 0.032f);
 
 
-//
+
                       GLfloat angle = timeValue * glm::radians(5.0f);
                       // model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
                       glm::mat3 normalMatrix = glm::transpose(glm::inverse(modelSoldier));
                       shaderSimple.SetValue("model", modelSoldier);
                       shaderSimple.SetValue("normalMatrix", normalMatrix);
                       shaderSimple.SetValue("shiftMix", shiftMix);
+                      shaderSimple.SetValue("normalDir", 1);
                       cubeModel.Draw(shaderSimple);
                      // soldierModel.Draw(shaderSimple);
-
+                       shaderSimple.SetValue("normalDir", -1);
                        shaderSimple.SetValue("model", modelCubMat);
                        cubeModel.Draw(shaderSimple);
 
