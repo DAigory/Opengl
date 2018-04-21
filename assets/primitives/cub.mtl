@@ -10,6 +10,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 d 1.000000
 illum 2
-map_Kd boxWood.png
-map_Bump boxWood.png
-map_Ks boxWood.png
+map_Kd brickwall.jpg
+map_Bump brickwall.jpg
+map_Ks brickwall.jpg
+map_Ns brickwall_normal.jpg

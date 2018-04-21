@@ -181,7 +181,7 @@ int main (int argc, char *argv[])
                                 ,"shaders/cubMapDepth/cubMapToLayer.geom");
     Shader screenShader = Shader("shaders/DrawToQuad/noMatrix.vert", "shaders/DrawToQuad/texture.frag");
 
-    GLuint textTest = TextureLoader::Load("boxWood.png", "assets/primitives/");
+    //GLuint textNormal = TextureLoader::Load("brickwall_normal.jpg", "assets/textures/");
 
     while(!glfwWindowShouldClose(window))
     {
@@ -260,14 +260,18 @@ int main (int argc, char *argv[])
                 glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
                 shaderSimple.Use();
-                glActiveTexture(GL_TEXTURE3);
-                shaderSimple.SetValue("shadowMapCub",3);
+                shaderSimple.SetValue("viewPos",camera.Position);
+//                glActiveTexture(GL_TEXTURE3);
+//                shaderSimple.SetValue("texture_normal",3);
+//                glBindTexture(GL_TEXTURE_2D, textNormal);
+                glActiveTexture(GL_TEXTURE4);
+                shaderSimple.SetValue("shadowMapCub",4);
                 glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
                 // glActiveTexture(GL_TEXTURE0+1);
                 // shaderSimple.SetValue("cubemap",1);
                //  glBindTexture(GL_TEXTURE_CUBE_MAP, cubMapTexture);
                  shaderSimple.SetValue("far_plane", far);
-                 shaderSimple.SetValue("dirLight.ambient", 0.13f, 0.13f, 0.13f);
+                 shaderSimple.SetValue("dirLight.ambient", 0.1f, 0.1f, 0.1f);
                  shaderSimple.SetValue("dirLight.diffuse", 0.3f, 0.3f, 0.3f);
                  shaderSimple.SetValue("dirLight.specular", 0.1f, 0.1f, 0.1f);
                  shaderSimple.SetValue("dirLight.direction", 1,0,0,0);
@@ -286,8 +290,8 @@ int main (int argc, char *argv[])
 
              std::string pointLight = "pointLight[";
              pointLight += std::to_string(0) + "].";
-             shaderSimple.SetValue((pointLight + "ambient").c_str(), 0.03f, 0.03f, 0.03f);
-             shaderSimple.SetValue((pointLight + "diffuse").c_str(), 0.5f, 0.5f, 0.5f);
+             shaderSimple.SetValue((pointLight + "ambient").c_str(), 0.1f, 0.1f, 0.1f);
+             shaderSimple.SetValue((pointLight + "diffuse").c_str(), 0.3f, 0.3f, 0.3f);
              shaderSimple.SetValue((pointLight + "specular").c_str(), 0.1f, 0.1f, 0.1f);
              shaderSimple.SetValue((pointLight + "position").c_str(), glm::vec4(lightPos.x,lightPos.y,lightPos.z,1));
              shaderSimple.SetValue((pointLight + "linear").c_str(),    0.09f);

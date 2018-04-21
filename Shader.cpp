@@ -109,7 +109,7 @@ GLuint Shader::GetUniformId(const GLchar* name){
 GLuint Shader::GetUniformBlockId(const GLchar* name){
     GLuint uniformBlockId = glGetUniformBlockIndex(this->GetId(), name);
     if(uniformBlockId > 200){
-         std::cout << "no foun uniform block id" << name << "shader: "<< this->Path <<std::endl;
+         std::cout << "not found uniform block id:" << name << " shader: "<< this->Path <<std::endl;
     }
     return uniformBlockId;
 }
