@@ -70,6 +70,11 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene)
         vector.z = mesh->mTangents[i].z;
         vertex.Tangent = vector;
 
+        vector.x = mesh->mBitangents[i].x;
+        vector.y = mesh->mBitangents[i].y;
+        vector.z = mesh->mBitangents[i].z;
+        vertex.Bitangent = vector;
+
         // texture coordinates
         if(mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
         {
@@ -135,6 +140,7 @@ vector<Texture> Model::loadMaterialTextures(aiMaterial *mat, aiTextureType type,
                textures.push_back(texture);
    // занесем текстуру в список уже загруженных
                textures_loaded.push_back(texture);
+               //cout << this->directory + " load "+ texture.type << endl;
            }
        }
        return textures;

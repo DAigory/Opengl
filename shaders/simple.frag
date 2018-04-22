@@ -61,6 +61,7 @@ in VS_OUT {
      #define NR_POINT_LIGHTS 4
      vec3 TangentPointLights[NR_POINT_LIGHTS];
      vec3 TangentViewPos;
+     mat3 TBN;
 } vs_in;
 
 out vec4 color;
@@ -90,24 +91,14 @@ void main()
      vec3 result = vec3(0);
      vec3 tangentViewDir = normalize(vs_in.TangentFragPos - vs_in.TangentViewPos);
      vec3 norm = vec3(texture(material.texture_normal1, vs_in.TexCoords));
-     norm = normalize(norm * 2.0 - 1.0).rgb * -1;
-//     normal = (normalize((rotationMatrix(normalize(cross(normal, norm)), 90.0) * vec4(norm, 0)).rgb));
-//     normal = (vs_in.View * vec4(normal, 0)).xyz;
-    // result += CalcProjLight(projectLight, normal, viewDir, shadow);
-     //result += CalcDirLight(norm, tangentViewDir, shadow);
-     for(int i = 0; i < NR_POINT_LIGHTS; i++){
-        result += CalcPointLight(i, norm, tangentViewDir, shadow);
-     }
-    // vec3 spec = vec3(texture(material.texture_diffuse1, vs_in.TexCoords));
+     norm = normalize(vs_in.TBN * normalize(norm * 2.0 - 1.0).rgb);
 
-    // vec3 R = refract(viewDir, normalize(vs_in.Normal), ratio);
-     //vec3 cubMapColor = texture(cubemap, R).rgb;
-
-    //  vec3 fragToLight = vs_in.FragPosWorldWorld - pointLight[0].position.xyz;
-    //  float closestDepth = texture(shadowMapCub, fragToLight).r;
+     result += CalcDirLight(norm, tangentViewDir, shadow);
+   // for(int i = 0; i < NR_POINT_LIGHTS; i++){
+        result += CalcPointLight(0, norm, tangentViewDir, shadow);
+   //}
 
      result = pow(result, vec3(1.0 / gamma));
-    // result.x -= shadow;
      color = vec4(vec3(result), 1);
 }
 
@@ -138,32 +129,30 @@ vec3 CalcProjLight(ProjectLight light, vec3 normal, vec3 viewDir,float shadow){
      specular *= attenuation;
 
      return ambient + shadow * (diffuseColor + specular) * intensity;
-    //return vec3(specular );
 }
 
 vec3 CalcDirLight(vec3 normal, vec3 viewDir, float shadow){
-     vec3 lightDir = vs_in.TangentDirLight;
+     vec3 lightDir = normalize(vs_in.TangentDirLight);
 
      float diffAngle = max(dot(normal, -lightDir), 0.0);
 
      vec3 reflectDir = normalize(reflect(lightDir, normal));
 
-     float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+     float spec = pow(max(dot(-viewDir, reflectDir), 0.0), material.shininess);
 
      vec3 ambient = dirLight.ambient * vec3(texture(material.texture_diffuse1, vs_in.TexCoords));
      vec3 diffuseColor = dirLight.diffuse * (diffAngle * vec3(texture(material.texture_diffuse1, vs_in.TexCoords)));
      vec3 specular = dirLight.specular * (spec *  vec3(texture(material.texture_specular1, vs_in.TexCoords)));
 
-     return vec3(diffuseColor);
+     //return vec3(diffuseColor);
      return (ambient + shadow * (diffuseColor + specular));
-
 }
 
 vec3 CalcPointLight(int index, vec3 normal, vec3 tangentViewDir, float shadow){
      PointLight light = pointLight[index];
-     vec3 tangentLightPos = vs_in.TangentPointLights[index];
+     vec3 tangentLightPos = pointLight[index].position.xyz;
 
-     float distance    = length(tangentLightPos - vs_in.TangentFragPos);
+     float distance    = length(tangentLightPos - vs_in.TangentFragPos) ;
      float attenuation = 1.0 / (1.0 + light.linear * distance +
      light.quadratic * (distance * distance));
 
@@ -171,18 +160,16 @@ vec3 CalcPointLight(int index, vec3 normal, vec3 tangentViewDir, float shadow){
 
 
      vec3 lightDir = normalize(vs_in.TangentFragPos - tangentLightPos);
-     float diffAngle = max(dot(normal, -lightDir), 0.0);
+     float diffAngle = max(dot(-lightDir, normal), 0.0);
      vec3 diffuseColor = light.diffuse * (diffAngle * vec3(texture(material.texture_diffuse1, vs_in.TexCoords)));
 
      vec3 reflectDir = reflect(lightDir, normal);
-     float spec = pow(max(dot(tangentViewDir, reflectDir), 0.0), material.shininess);
+     float spec = pow(max(dot(-tangentViewDir, reflectDir), 0.0), material.shininess);
      vec3 specular = light.specular * (spec *  vec3( texture(material.texture_specular1, vs_in.TexCoords)));
 
      ambient  *= attenuation;
      diffuseColor  *= attenuation;
      specular *= attenuation;
-
-     return diffuseColor;
+     //return vec3(diffuseColor);
      return ambient + shadow * (diffuseColor + specular);
-
 }

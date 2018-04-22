@@ -162,19 +162,6 @@ int main (int argc, char *argv[])
 
     glm::vec3 lightPos = glm::vec3(1.5, 1.2, 1);
 
-    std::vector<glm::mat4> shadowTransforms;
-    shadowTransforms.push_back(shadowProj *
-                     glm::lookAt(lightPos, lightPos + glm::vec3( 1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0)));
-    shadowTransforms.push_back(shadowProj *
-                     glm::lookAt(lightPos, lightPos + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0)));
-    shadowTransforms.push_back(shadowProj *
-                     glm::lookAt(lightPos, lightPos + glm::vec3( 0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)));
-    shadowTransforms.push_back(shadowProj *
-                     glm::lookAt(lightPos, lightPos + glm::vec3( 0.0,-1.0, 0.0), glm::vec3(0.0, 0.0,-1.0)));
-    shadowTransforms.push_back(shadowProj *
-                     glm::lookAt(lightPos, lightPos + glm::vec3( 0.0, 0.0, 1.0), glm::vec3(0.0,-1.0, 0.0)));
-    shadowTransforms.push_back(shadowProj *
-                     glm::lookAt(lightPos, lightPos + glm::vec3( 0.0, 0.0,-1.0), glm::vec3(0.0,-1.0, 0.0)));
 
     Shader depthShaderCub = Shader("shaders/cubMapDepth/model.vert"
                                 ,"shaders/cubMapDepth/depthCubMap.frag"
@@ -204,9 +191,11 @@ int main (int argc, char *argv[])
         modelPrimitive = glm::translate(modelPrimitive, pos);
 
         glm::mat4 modelSoldier;
-        glm::vec3 newPosSoldier =  glm::vec3(4.0f, 2.0f, 2.0);
+        glm::vec3 newPosSoldier =  glm::vec3(4.0f, -5.0f, 2.0);
         modelSoldier = glm::translate(modelSoldier, newPosSoldier);
-        modelSoldier = glm::scale(modelSoldier, glm::vec3(0.2f));
+        modelSoldier = glm::scale(modelSoldier, glm::vec3(0.5f));
+        GLfloat angle = timeValue * glm::radians(50.0f);
+        modelSoldier = glm::rotate(modelSoldier, angle, glm::vec3(0.0f, 0.3f, 0.0f));
 
         glm::mat4 modelCubMat = glm::mat4();
         modelCubMat = glm::translate(modelCubMat, glm::vec3(0,0,0));
@@ -250,7 +239,7 @@ int main (int argc, char *argv[])
         depthShaderCub.SetValue("far_plane", far);
         depthShaderCub.SetValue("lightPos", lightPos);
         depthShaderCub.SetValue("model", modelSoldier);
-        cubeModel.Draw(depthShaderCub);
+        soldierModel.Draw(depthShaderCub);
         depthShaderCub.SetValue("model", modelCubMat);
         cubeModel.Draw(depthShaderCub);
         glCullFace(GL_BACK);
@@ -272,8 +261,8 @@ int main (int argc, char *argv[])
                //  glBindTexture(GL_TEXTURE_CUBE_MAP, cubMapTexture);
                  shaderSimple.SetValue("far_plane", far);
                  shaderSimple.SetValue("dirLight.ambient", 0.1f, 0.1f, 0.1f);
-                 shaderSimple.SetValue("dirLight.diffuse", 0.3f, 0.3f, 0.3f);
-                 shaderSimple.SetValue("dirLight.specular", 0.1f, 0.1f, 0.1f);
+                 shaderSimple.SetValue("dirLight.diffuse", 0.2f, 0.2f, 0.2f);
+                 shaderSimple.SetValue("dirLight.specular",  0.1f, 0.1f, 0.1f);
                  shaderSimple.SetValue("dirLight.direction", 1,0,0,0);
 
 //
@@ -290,14 +279,14 @@ int main (int argc, char *argv[])
 
              std::string pointLight = "pointLight[";
              pointLight += std::to_string(0) + "].";
-             shaderSimple.SetValue((pointLight + "ambient").c_str(), 0.1f, 0.1f, 0.1f);
-             shaderSimple.SetValue((pointLight + "diffuse").c_str(), 0.3f, 0.3f, 0.3f);
-             shaderSimple.SetValue((pointLight + "specular").c_str(), 0.1f, 0.1f, 0.1f);
+             shaderSimple.SetValue((pointLight + "ambient").c_str(),  0.1f, 0.1f, 0.1f);
+             shaderSimple.SetValue((pointLight + "diffuse").c_str(), 0.6f, 0.6f, 0.6f);
+             shaderSimple.SetValue((pointLight + "specular").c_str(), 0.9f, 0.9f, 0.9f);
              shaderSimple.SetValue((pointLight + "position").c_str(), glm::vec4(lightPos.x,lightPos.y,lightPos.z,1));
              shaderSimple.SetValue((pointLight + "linear").c_str(),    0.09f);
              shaderSimple.SetValue((pointLight + "quadratic").c_str(), 0.032f);
 
-             shaderSimple.SetValue("model", modelPrimitive);
+             //shaderSimple.SetValue("model", modelPrimitive);
              //planeModel.Draw(shaderSimple);
 
              shaderSimple.SetValue("material.shininess", 32.0f);
@@ -316,25 +305,26 @@ int main (int argc, char *argv[])
 
 
 
-                      GLfloat angle = timeValue * glm::radians(5.0f);
-                      // model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
+
                       glm::mat3 normalMatrix = glm::transpose(glm::inverse(modelSoldier));
                       shaderSimple.SetValue("model", modelSoldier);
                       shaderSimple.SetValue("normalMatrix", normalMatrix);
-                      shaderSimple.SetValue("shiftMix", shiftMix);
+                      //shaderSimple.SetValue("shiftMix", shiftMix);
                       shaderSimple.SetValue("normalDir", 1);
-                      cubeModel.Draw(shaderSimple);
-                     // soldierModel.Draw(shaderSimple);
+                     // cubeModel.Draw(shaderSimple);
+                       soldierModel.Draw(shaderSimple);
+                       normalMatrix = glm::transpose(glm::inverse(modelCubMat));
+                       shaderSimple.SetValue("normalMatrix", normalMatrix);
                        shaderSimple.SetValue("normalDir", -1);
                        shaderSimple.SetValue("model", modelCubMat);
                        cubeModel.Draw(shaderSimple);
 
 
                        shaderLamp.Use();
-                       modelCubMat = glm::mat4();
-                       modelCubMat = glm::translate(modelCubMat, lightPos);
-                       modelCubMat = glm::scale(modelCubMat, glm::vec3(0.1f));
-                       shaderLamp.SetValue("model", modelCubMat);
+                       glm::mat4 lampModelMatrix = glm::mat4();
+                       lampModelMatrix = glm::translate(lampModelMatrix, lightPos);
+                       lampModelMatrix = glm::scale(lampModelMatrix, glm::vec3(0.1f));
+                       shaderLamp.SetValue("model", lampModelMatrix);
                        cubeModel.Draw(shaderLamp);
 //
 //         //lamp data to shader
