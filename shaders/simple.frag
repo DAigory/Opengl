@@ -61,7 +61,6 @@ in VS_OUT {
      #define NR_POINT_LIGHTS 4
      vec3 TangentPointLights[NR_POINT_LIGHTS];
      vec3 TangentViewPos;
-     mat3 TBN;
 } vs_in;
 
 out vec4 color;
@@ -91,8 +90,7 @@ void main()
      vec3 result = vec3(0);
      vec3 tangentViewDir = normalize(vs_in.TangentFragPos - vs_in.TangentViewPos);
      vec3 norm = vec3(texture(material.texture_normal1, vs_in.TexCoords));
-     norm = normalize(vs_in.TBN * normalize(norm * 2.0 - 1.0).rgb);
-
+     norm = normalize(norm * 2.0 - 1.0);
      result += CalcDirLight(norm, tangentViewDir, shadow);
    // for(int i = 0; i < NR_POINT_LIGHTS; i++){
         result += CalcPointLight(0, norm, tangentViewDir, shadow);
@@ -150,7 +148,7 @@ vec3 CalcDirLight(vec3 normal, vec3 viewDir, float shadow){
 
 vec3 CalcPointLight(int index, vec3 normal, vec3 tangentViewDir, float shadow){
      PointLight light = pointLight[index];
-     vec3 tangentLightPos = pointLight[index].position.xyz;
+     vec3 tangentLightPos = vs_in.TangentPointLights[index];
 
      float distance    = length(tangentLightPos - vs_in.TangentFragPos) ;
      float attenuation = 1.0 / (1.0 + light.linear * distance +
@@ -170,6 +168,6 @@ vec3 CalcPointLight(int index, vec3 normal, vec3 tangentViewDir, float shadow){
      ambient  *= attenuation;
      diffuseColor  *= attenuation;
      specular *= attenuation;
-     //return vec3(diffuseColor);
+     //return vec3(spec);
      return ambient + shadow * (diffuseColor + specular);
 }
